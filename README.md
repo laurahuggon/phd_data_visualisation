@@ -1,1 +1,1 @@
-# phd_data_visualisation
+# PhD Data Visualisation
