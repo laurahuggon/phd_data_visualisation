@@ -303,8 +303,6 @@ plot_data = function(group_data, sample_data, annotation_data, x = "Genotype", s
 # Make plot
 plot = plot_data(group_means, sample_means, annotation)
 
-plot
-
 # Export plot
 # Open a PNG file to save the plot
 #
