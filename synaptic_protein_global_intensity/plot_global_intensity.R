@@ -6,15 +6,17 @@ library(tidyverse)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
-relative_filepath = "syp/"
-filename = "PRE_global_intensity_syp.csv"
-marker = "synaptophysin"
+relative_filepath = "stx/"
+filename = "PRE_global_intensity_stx.csv"
+marker = "syntaxin 1A"
 
 
 # Load data ---------------------------------------------------------------
 
 full_filename = paste0(parent_filepath, relative_filepath, filename)
 nis_elements_df = read_csv(full_filename)
+
+staining_to_imaging = read_csv("/Users/laurahuggon/Desktop/staining-to-imaging.csv")
 
 
 # Prepare data ------------------------------------------------------------
@@ -80,9 +82,61 @@ nis_elements_df = nis_elements_df %>%
   ) %>%
   select(-Suffix)  # Remove the Suffix column if it's not needed later
 
+# Join dataframes
+staining_to_imaging$DIFF <- as.character(staining_to_imaging$DIFF)
+staining_to_imaging$DIV <- as.character(staining_to_imaging$DIV)
+
+nis_elements_df <- nis_elements_df %>%
+  left_join(staining_to_imaging, by = c("Genotype", "DIFF", "DIV"))
+
+# Define references
+wt_reference_df <- nis_elements_df %>%
+  filter(Genotype == "WT", Less_Than_Week == TRUE)
+wt_reference = median(wt_reference_df$MeanIntensity)
+
+qk_reference_df <- nis_elements_df %>%
+  filter(Genotype == "Q331K", Less_Than_Week == TRUE)
+qk_reference = median(qk_reference_df$MeanIntensity)
+
 # Define Genotype and DIV variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
 
+
+# Find sample medians -------------------------------------------------------
+
+# Create function that finds sample medians for a given variable
+mean_by_sample = function(data, column_name) {
+  # Group by Genotype, DIFF
+  result = data %>%
+    group_by(Genotype, DIFF) %>%
+    summarise(
+      N = n(), # Count the number of images in each sample
+      N_Median = median(.data[[column_name]]), # Calculate mean for each sample
+    )
+  return(result)
+}
+
+# Find mean for each sample
+sample_medians = mean_by_sample(nis_elements_df, "MeanIntensity")
+
+# Calculate normalisation factor
+sample_medians = sample_medians %>%
+  mutate(
+    Normalisation_Factor = case_when(
+      Genotype == "WT"    ~ wt_reference / N_Median,
+      Genotype == "Q331K" ~ qk_reference / N_Median
+    )
+  )
+
+# Multiply the mean intensity of each image in all sets by their respective normalisation factors
+nis_elements_df = nis_elements_df %>%
+  left_join(sample_medians, by = c("Genotype", "DIFF")) %>%
+  mutate(
+    Normalised_MeanIntensity = MeanIntensity * Normalisation_Factor
+    )
+
+nis_elements_df = nis_elements_df %>%
+  filter(DIFF != 5)
 
 # Find sample means -------------------------------------------------------
 
@@ -99,7 +153,7 @@ mean_by_sample = function(data, column_name) {
 }
 
 # Find mean for each sample
-sample_means = mean_by_sample(nis_elements_df, "MeanIntensity")
+sample_means = mean_by_sample(nis_elements_df, "Normalised_MeanIntensity")
 
 
 # Find group means --------------------------------------------------------
@@ -131,9 +185,9 @@ perform_test = function(data) {
   normality_result = by(data$N_Mean, data$Genotype, shapiro.test)
   
   wt_normal = normality_result$WT$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-                                                 # `wt_normal` is set to `TRUE` if p-value is greater than 0.05
+  # `wt_normal` is set to `TRUE` if p-value is greater than 0.05
   q331k_normal = normality_result$Q331K$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-                                                       # `qk_normal` is set to `TRUE` if p-value is greater than 0.05
+  # `qk_normal` is set to `TRUE` if p-value is greater than 0.05
   
   if (!wt_normal || !q331k_normal) { # If either variable is set to `FALSE`
     # If data is not normally distributed, perform Mann-Whitney test
@@ -303,6 +357,8 @@ plot_data = function(group_data, sample_data, annotation_data, x = "Genotype", s
 # Make plot
 plot = plot_data(group_means, sample_means, annotation)
 
+plot
+
 # Export plot
 # Open a PNG file to save the plot
 #
@@ -311,7 +367,7 @@ plot = plot_data(group_means, sample_means, annotation)
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, marker, "_global_intensity.png"), width=825, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, marker, "_global_intensity_adjusted.png"), width=825, height=1335, res=300)
 
 # Create a plot
 plot
