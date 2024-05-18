@@ -340,7 +340,7 @@ plot_by_genotype_div = function(group_data, sample_data, annotation_data, x = "G
   } else if (grepl("density", data_name)) {
     y_label = bquote("Density of coloc " * .(protein_name) * " puncta (puncta/μm3)")
   } else if (grepl("volume", data_name)) {
-    y_label = bquote("Volume of coloc " * .(protein_name) * " puncta (μm3)")
+    y_label = bquote("Normalised volume of coloc " * .(protein_name) * " puncta (μm3)")
   } else {
     y_label = "Mean"  # Default label if no specific identifier is found
   }
