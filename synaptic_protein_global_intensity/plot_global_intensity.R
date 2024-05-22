@@ -1,4 +1,6 @@
 
+# For normalising to BTUB intensity: uncomment the calculation code, change the y-axis title on the plot, and change the file name.
+
 # Load libraries ----------------------------------------------------------
 
 library(tidyverse)
@@ -6,12 +8,28 @@ library(tidyverse)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
-relative_filepath = "syp/"
-filename = "PRE_global_intensity_syp.csv"
+
 marker = "synaptophysin"
+entity = "PRE"
+measurement = "MedianIntensity"
 
 
 # Load data ---------------------------------------------------------------
+
+# Create relative_filepath and filename
+if (marker == "synaptophysin") {
+  relative_filepath = "syp/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+} else if (marker == "Homer") {
+  relative_filepath = "hmr/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+} else if (marker == "syntaxin 1A") {
+  relative_filepath = "stx/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+} else if (marker == "PSD-95") {
+  relative_filepath = "psd/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+}
 
 full_filename = paste0(parent_filepath, relative_filepath, filename)
 nis_elements_df = read_csv(full_filename)
@@ -82,7 +100,39 @@ nis_elements_df = nis_elements_df %>%
 
 # Define Genotype and DIV variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
+nis_elements_df$DIFF = factor(nis_elements_df$DIFF, levels = c(3, 4, 5, 14))
 
+# Remove DIFF 5
+if (marker == "syntaxin 1A" | marker == "Homer") {
+  nis_elements_df = nis_elements_df %>%
+    filter(DIFF != 5)
+}
+
+# Normalise SumIntensity values to TotalCellVolume
+if (entity == "PRE") {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      PRE_SumIntensity = PRE_SumIntensity / `TotalCellVolume(BTUB)`
+    )
+} else if (entity == "POST") {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      POST_SumIntensity = POST_SumIntensity / `TotalCellVolume(BTUB)`
+    )
+}
+
+# Normalise MedianIntensity to BTUB_MedianIntensity
+# if (entity == "PRE") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       PRE_MedianIntensity = PRE_MedianIntensity / BTUB_MedianIntensity
+#     )
+# } else if (entity == "POST") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       POST_MedianIntensity = POST_MedianIntensity / BTUB_MedianIntensity
+#     )
+# }
 
 # Find sample means -------------------------------------------------------
 
@@ -98,8 +148,11 @@ mean_by_sample = function(data, column_name) {
   return(result)
 }
 
+# Define column name
+column_name = paste0(entity, "_", measurement)
+
 # Find mean for each sample
-sample_means = mean_by_sample(nis_elements_df, "MeanIntensity")
+sample_means = mean_by_sample(nis_elements_df, column_name)
 
 
 # Find group means --------------------------------------------------------
@@ -266,17 +319,22 @@ plot_data = function(group_data, sample_data, annotation_data, x = "Genotype", s
     # Graph titles
     labs(title = "Global",
          x = "",
-         y = paste0("Mean intensity of ", marker, " (a.u.)"),
+         y = paste0(measurement, " of ", marker, " (a.u.)"),
          fill = x) +
     
     # Plot appearance
     my_theme() +
     scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
   
-  # Overlay individual data points
+  # Define shapes for each DIFF value
+  diff_shapes <- c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
+  
+  # Overlay individual data points with different shapes for DIFF
   p = p + geom_point(data = sample_data, aes_string(x = x,
-                                                    y = "N_Mean"),
-                     position = position_dodge(0.9), size = 1.5)
+                                                    y = "N_Mean",
+                                                    shape = "DIFF"),  # Added shape aesthetic
+                     position = position_dodge(0), size = 1.5, fill = "black") +
+    scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
   
   # Add conditional annotations for significant p-values
   if (nrow(annotation_data) > 0) {
@@ -303,6 +361,8 @@ plot_data = function(group_data, sample_data, annotation_data, x = "Genotype", s
 # Make plot
 plot = plot_data(group_means, sample_means, annotation)
 
+plot
+
 # Export plot
 # Open a PNG file to save the plot
 #
@@ -311,13 +371,26 @@ plot = plot_data(group_means, sample_means, annotation)
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, marker, "_global_intensity.png"), width=825, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, marker, "_global_", measurement, "_raw.png"), width=825, height=1335, res=300)
 
 # Create a plot
 plot
 
 # Close the device
 dev.off()
+
+# Histograms
+# plot2 = ggplot(nis_elements_df, aes(x = PRE_MeanIntensity, fill = DIFF, color = DIFF)) +
+#   geom_density(alpha = 0.4, size = 0.5, adjust = 1.5) +  # Adjust the smoothness
+#   labs(title = paste0("Density Plot of ", measurement, " (", marker, ")"),
+#        x = measurement,
+#        y = "Density") +
+#   theme_minimal() +
+#   theme(legend.position = "right") +
+#   xlim(min(nis_elements_df$PRE_MeanIntensity) - 500, max(nis_elements_df$PRE_MeanIntensity) + 750) +
+#   facet_wrap(~ Genotype, scales = "free_y")  # Separate plots by Genotype
+# 
+# plot2
 
 # Print message
 print(message)
