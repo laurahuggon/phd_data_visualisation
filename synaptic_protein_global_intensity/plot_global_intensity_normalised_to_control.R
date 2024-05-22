@@ -139,35 +139,9 @@ group_means = mean_by_group(sample_means)
 
 # Create function to test normality, equal variance, and perform appropriate statistical test
 perform_test = function(data) {
-  
-  # Extract values grouped by Genotype using N_Mean
-  # Test for normality using Shapiro-Wilk test
-  normality_result = by(data$N_Mean, data$Genotype, shapiro.test)
-  
-  wt_normal = normality_result$WT$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-  # `wt_normal` is set to `TRUE` if p-value is greater than 0.05
-  q331k_normal = normality_result$Q331K$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-  # `qk_normal` is set to `TRUE` if p-value is greater than 0.05
-  
-  if (!wt_normal || !q331k_normal) { # If either variable is set to `FALSE`
-    # If data is not normally distributed, perform Mann-Whitney test
-    message = "Data not normally distributed; perform Mann-Whitney test"
+    # Control data has no variance, perform Mann-Whitney test
+    message = "Data has no variance; perform Mann-Whitney test"
     test_result = wilcox.test(N_Mean ~ Genotype, data = data) # `N_Mean ~ Genotype` specifies that you want to compare values in the `N_Mean` column grouped by `Genotype`
-  } else {
-    # Test for equal variances using F-test
-    variance_test = var.test(N_Mean ~ Genotype, data = data)
-    var_equal = variance_test$p.value > 0.05 # If p-value is greater than 0.05, it assumes both genotypes have equal variances
-    
-    if (!var_equal) { # If `var_equal` variable is set to `FALSE`
-      # If variances are not equal, perform t-test with var.equal = FALSE
-      message = "Data does not have equal variance; perform Welch's t-test"
-      test_result = t.test(N_Mean ~ Genotype, data = data, var.equal = FALSE)
-    } else {
-      # If variances are equal, perform t-test with var.equal = TRUE
-      message = "Data has equal variance; perform Student's t-test"
-      test_result = t.test(N_Mean ~ Genotype, data = data, var.equal = TRUE)
-    }
-  }
   
   # Return both test results and the message
   return(list(test_result = test_result, message = message))
