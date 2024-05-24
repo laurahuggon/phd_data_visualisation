@@ -1,5 +1,5 @@
 
-# For normalising to BTUB intensity: uncomment the calculation code, change the y-axis title on the plot, and change the file name.
+# For normalising intensities to BTUB intensity: uncomment the calculation code, add "Normalised" the y-axis title on the plot, and change the file name from "_raw" to "_normalised".
 
 # Load libraries ----------------------------------------------------------
 
