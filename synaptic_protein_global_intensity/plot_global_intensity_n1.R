@@ -1,17 +1,29 @@
 
+# For normalising to BTUB intensity: uncomment the calculation code, change the y-axis title on the plot, and change the file name.
+
 # Load libraries ----------------------------------------------------------
 
 library(tidyverse)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/unc13/analysis_nis_elements/global_intensity/"
-relative_filepath = "unc13/"
-filename = "PRE_global_intensity_unc.csv"
-marker = "UNC13A"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
+
+marker = "PSD-95"
+entity = "POST"
+measurement = "MedianIntensity"
 
 
 # Load data ---------------------------------------------------------------
+
+# Create relative_filepath and filename
+if (marker == "UNC13A") {
+  relative_filepath = "unc/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+} else if (marker == "synaptophysin" | marker == "PSD-95") {
+  relative_filepath = "highdensity/"
+  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 11), ".csv")
+}
 
 full_filename = paste0(parent_filepath, relative_filepath, filename)
 nis_elements_df = read_csv(full_filename)
@@ -21,7 +33,7 @@ nis_elements_df = read_csv(full_filename)
 
 # Unblind samples by adding Genotype, DIFF and DIV columns
 # Define mappings - map each suffix to its corresponding value
-if (marker == "UNC13A" | marker == "PSD-95") {
+if (marker == "UNC13A") {
   genotype_map = c("1" = "WT", "2" = "Q331K")
   
   diff_map = c("1" = "14", "2" = "14")
@@ -29,12 +41,19 @@ if (marker == "UNC13A" | marker == "PSD-95") {
   div_map = c("1" = "21", "2" = "21")
   
   suffix_regex = "(?<=_)[1-2](?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture character between two underscores
+} else if (marker == "synaptophysin" | marker == "PSD-95") {
+  genotype_map = c("WT" = "WT", "QK" = "Q331K")
   
+  diff_map = c("WT" = "3", "QK" = "3")
+  
+  div_map = c("WT" = "21", "QK" = "21")
+  
+  suffix_regex = "(?<=_)(WT|QK)(?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture either "WT" or "QK" between two underscores
 }
 
 # Extract the suffix from the filename
 nis_elements_df = nis_elements_df %>%
-  mutate(Suffix = str_extract(Filename, suffix_regex)) %>%
+  mutate(Suffix = str_extract(Filename, suffix_regex)) %>% # Extract substring from `Filename` column based of the `suffix_regex` pattern
   mutate(
     Genotype = genotype_map[Suffix], # Map suffixes to respective values using predefined mappings
     DIFF = diff_map[Suffix],
@@ -42,8 +61,41 @@ nis_elements_df = nis_elements_df %>%
   ) %>%
   select(-Suffix)  # Remove the Suffix column if it's not needed later
 
-# Define Genotype and DIV variable as a factor with levels
+# Define Genotype and DIFF variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
+nis_elements_df$DIFF = factor(nis_elements_df$DIFF, levels = c(3, 4, 5, 14))
+
+# Remove DIFF 5
+if (marker == "syntaxin 1A" | marker == "Homer") {
+  nis_elements_df = nis_elements_df %>%
+    filter(DIFF != 5)
+}
+
+# Normalise SumIntensity values to TotalCellVolume
+if (entity == "PRE") {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      PRE_SumIntensity = PRE_SumIntensity / `TotalCellVolume(BTUB)`
+    )
+} else if (entity == "POST") {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      POST_SumIntensity = POST_SumIntensity / `TotalCellVolume(BTUB)`
+    )
+}
+
+# Normalise MedianIntensity to BTUB_MedianIntensity
+# if (entity == "PRE") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       PRE_MedianIntensity = PRE_MedianIntensity / BTUB_MedianIntensity
+#     )
+# } else if (entity == "POST") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       POST_MedianIntensity = POST_MedianIntensity / BTUB_MedianIntensity
+#     )
+# }
 
 
 # Find sample means -------------------------------------------------------
@@ -60,8 +112,11 @@ mean_by_sample = function(data, column_name) {
   return(result)
 }
 
+# Define column name
+column_name = paste0(entity, "_", measurement)
+
 # Find mean for each sample
-sample_means = mean_by_sample(nis_elements_df, "MeanIntensity")
+sample_means = mean_by_sample(nis_elements_df, column_name)
 
 
 # Find group means --------------------------------------------------------
@@ -222,17 +277,22 @@ plot_data = function(group_data, sample_data, x = "Genotype", sd = "SD") {
     # Graph titles
     labs(title = "Global",
          x = "",
-         y = paste0("Mean intensity of ", marker, " (a.u.)"),
+         y = paste0(measurement, " of ", marker, " (a.u.)"),
          fill = x) +
     
     # Plot appearance
     my_theme() +
     scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
   
-  # Overlay individual data points
+  # Define shapes for each DIFF value
+  diff_shapes <- c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
+  
+  # Overlay individual data points with different shapes for DIFF
   p = p + geom_point(data = sample_data, aes_string(x = x,
-                                                    y = "N_Mean"),
-                     position = position_dodge(0.9), size = 1.5)
+                                                    y = "N_Mean",
+                                                    shape = "DIFF"),  # Added shape aesthetic
+                     position = position_dodge(0), size = 1.5, fill = "black") +
+    scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
   
   # Print the plot
   return(p)
@@ -240,6 +300,8 @@ plot_data = function(group_data, sample_data, x = "Genotype", sd = "SD") {
 
 # Make plot
 plot = plot_data(group_means, sample_means)
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
@@ -249,7 +311,7 @@ plot = plot_data(group_means, sample_means)
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, marker, "_global_intensity.png"), width=825, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, marker, "_global_", measurement, "_raw.png"), width=825, height=1335, res=300)
 
 # Create a plot
 plot
