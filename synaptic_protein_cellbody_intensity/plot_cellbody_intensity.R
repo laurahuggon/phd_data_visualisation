@@ -98,7 +98,7 @@ nis_elements_df = nis_elements_df %>%
   ) %>%
   select(-Suffix)  # Remove the Suffix column if it's not needed later
 
-# Define Genotype and DIV variable as a factor with levels
+# Define Genotype and DIFF variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
 nis_elements_df$DIFF = factor(nis_elements_df$DIFF, levels = c(3, 4, 5, 14))
 
