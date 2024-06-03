@@ -6,10 +6,10 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_2/"
-relative_filepath = "24.03.06_hmr_snap/"
-filename = "empiria_hmr.xlsx"
-protein_name = "Homer"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_1/"
+relative_filepath = "24.05.31_stx_csp/"
+filename = "empiria_stx.xlsx"
+protein_name = "Syntaxin 1A"
 
 
 # Load data ---------------------------------------------------------------
@@ -255,6 +255,8 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
 
 # Make plot
 plot = plot_normalised(group_means, normalised_to_control, annotation)
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
