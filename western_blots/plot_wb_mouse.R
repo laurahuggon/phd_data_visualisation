@@ -7,9 +7,12 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_synaptosome/"
-relative_filepath = "vamp/"
-filename = "empiria_vamp.xlsx"
-protein_name = "VAMP2"
+relative_filepath = "munc13/"
+filename = "empiria_munc13.xlsx"
+protein_name = "Munc13-1"
+
+colour1 = "#B33F78"
+colour2 = "#EAABDD"
 
 
 # Load data ---------------------------------------------------------------
@@ -211,7 +214,7 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
     geom_col(position = position_dodge(0.9),
              width = 0.6,
              color = "black") +
-    scale_fill_manual(values = c("NTg" = "grey40", "Q331K" = "grey88")) +
+    scale_fill_manual(values = c("NTg" = colour1, "Q331K" = colour2)) +
     
     # Error bars
     geom_errorbar(aes(ymin = group_data[["Normalised_Group_Mean"]] - group_data[[sd]],
@@ -259,6 +262,8 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
 # Make plot
 plot = plot_normalised(group_means, normalised_to_control, annotation)
 
+plot
+
 # Export plot
 # Open a PNG file to save the plot
 #
@@ -267,7 +272,7 @@ plot = plot_normalised(group_means, normalised_to_control, annotation)
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot.png"), width=825, height=1390, res=300)
+png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot_colour.png"), width=825, height=1390, res=300)
 
 # Create a plot
 plot
