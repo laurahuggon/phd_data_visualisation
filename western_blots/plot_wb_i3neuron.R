@@ -6,11 +6,13 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_1/"
-relative_filepath = "24.05.31_stx_csp/"
-filename = "empiria_stx.xlsx"
-protein_name = "Syntaxin 1A"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_2/"
+relative_filepath = "24.02.27_vamp_stxbp/"
+filename = "empiria_stxbp.xlsx"
+protein_name = "STXBP1"
 
+colour1 = "#3A68AE"
+colour2 = "#B9DBF4"
 
 # Load data ---------------------------------------------------------------
 
@@ -208,7 +210,7 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
     geom_col(position = position_dodge(0.9),
              width = 0.6,
              color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+    scale_fill_manual(values = c("WT" = colour1, "Q331K" = colour2)) +
     
     # Error bars
     geom_errorbar(aes(ymin = group_data[["Normalised_Group_Mean"]] - group_data[[sd]],
@@ -266,7 +268,7 @@ plot
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot.png"), width=825, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot_colour.png"), width=825, height=1335, res=300)
 
 # Create a plot
 plot
