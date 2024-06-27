@@ -8,8 +8,8 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/"
-relative_filepath = "ripa_extraction_1/"
-filename = "ripa_extraction_1.xlsx"
+relative_filepath = "synper_extraction_practice/"
+filename = "synper_extraction_practice.xlsx"
 
 
 # Load data ---------------------------------------------------------------
@@ -110,7 +110,7 @@ samples = samples %>%
   select(Avg_Absorbance, Interpolated_Concentration)
 
 # Calculate positions
-samples$y_position = 0.18 - seq(0, by = 0.02, length.out = nrow(samples))  # Adjust spacing as needed
+samples$y_position = 0.24 - seq(0, by = 0.02, length.out = nrow(samples))  # Adjust spacing as needed
 
 # Modify plot
 plot = plot +
@@ -122,12 +122,14 @@ plot = plot +
   annotate("text", x = 0.15, y = 0.3, label = equation, size = 4, color = "black", hjust = 0, vjust = 0) +
   
   # Column titles
-  annotate("text", x = 1.25, y = 0.2, label = "Abs", hjust = 0.5, vjust = 1, size = 4) +
-  annotate("text", x = 1.425, y = 0.2, label = "Conc", hjust = 0.5, vjust = 1, size = 4) +
+  annotate("text", x = 1.25, y = 0.26, label = "Abs", hjust = 0.5, vjust = 1, size = 4) +
+  annotate("text", x = 1.425, y = 0.26, label = "Conc", hjust = 0.5, vjust = 1, size = 4) +
   
   # Annotations for absorbance and concentration values
   geom_text(data = samples, aes(x = 1.25, y = y_position, label = sprintf("%.3f", Avg_Absorbance)), hjust = 0.5, vjust = 1, size = 4, color = "black") +
   geom_text(data = samples, aes(x = 1.425, y = y_position, label = sprintf("%.2f", Interpolated_Concentration)), hjust = 0.5, vjust = 1, size = 4, color = "black")
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
