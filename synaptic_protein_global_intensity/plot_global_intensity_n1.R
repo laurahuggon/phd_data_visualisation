@@ -7,11 +7,11 @@ library(tidyverse)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/unc13/analysis_nis_elements/global_intensity/"
 
-marker = "PSD-95"
-entity = "POST"
-measurement = "MedianIntensity"
+marker = "UNC13A"
+entity = "PRE"
+measurement = "SumIntensity"
 
 
 # Load data ---------------------------------------------------------------
@@ -72,17 +72,17 @@ if (marker == "syntaxin 1A" | marker == "Homer") {
 }
 
 # Normalise SumIntensity values to TotalCellVolume
-if (entity == "PRE") {
-  nis_elements_df = nis_elements_df %>%
-    mutate(
-      PRE_SumIntensity = PRE_SumIntensity / `TotalCellVolume(BTUB)`
-    )
-} else if (entity == "POST") {
-  nis_elements_df = nis_elements_df %>%
-    mutate(
-      POST_SumIntensity = POST_SumIntensity / `TotalCellVolume(BTUB)`
-    )
-}
+# if (entity == "PRE") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       PRE_SumIntensity = PRE_SumIntensity / `TotalCellVolume(BTUB)`
+#     )
+# } else if (entity == "POST") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       POST_SumIntensity = POST_SumIntensity / `TotalCellVolume(BTUB)`
+#     )
+# }
 
 # Normalise MedianIntensity to BTUB_MedianIntensity
 # if (entity == "PRE") {
