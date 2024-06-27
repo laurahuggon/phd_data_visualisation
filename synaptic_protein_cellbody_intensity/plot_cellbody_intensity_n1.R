@@ -7,11 +7,11 @@ library(tidyverse)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/cellbody_intensity/"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/unc13/analysis_nis_elements/cellbody_intensity/"
 
-marker = "PSD-95"
-entity = "POST"
-measurement = "MeanIntensity"
+marker = "UNC13A"
+entity = "PRE"
+measurement = "SumIntensity"
 
 
 # Load data ---------------------------------------------------------------
