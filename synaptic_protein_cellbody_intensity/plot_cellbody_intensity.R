@@ -9,9 +9,9 @@ library(tidyverse)
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/cellbody_intensity/"
 
-marker = "synaptophysin"
-entity = "PRE"
-measurement = "MedianIntensity"
+marker = "Homer"
+entity = "POST"
+measurement = "SumIntensity"
 
 
 # Load data ---------------------------------------------------------------
@@ -113,17 +113,17 @@ if (marker == "syntaxin 1A" | marker == "Homer") {
 }
 
 # Normalise SumIntensity values to TotalCellBodyVolume
-if (entity == "PRE") {
-  nis_elements_df = nis_elements_df %>%
-    mutate(
-      PRE_SumIntensity = PRE_SumIntensity / `TotalCellBodyVolume(BTUB)`
-    )
-} else if (entity == "POST") {
-  nis_elements_df = nis_elements_df %>%
-    mutate(
-      POST_SumIntensity = POST_SumIntensity / `TotalCellBodyVolume(BTUB)`
-    )
-}
+# if (entity == "PRE") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       PRE_SumIntensity = PRE_SumIntensity / `TotalCellBodyVolume(BTUB)`
+#     )
+# } else if (entity == "POST") {
+#   nis_elements_df = nis_elements_df %>%
+#     mutate(
+#       POST_SumIntensity = POST_SumIntensity / `TotalCellBodyVolume(BTUB)`
+#     )
+# }
 
 # Normalise MedianIntensity to BTUB_MedianIntensity
 # if (entity == "PRE") {
