@@ -8,10 +8,10 @@ This repository contains all the R scripts used for data processing and visualis
 Contains an R script for visualising calcium traces from fluorescent imaging data. The script takes normalised Fluo-4 intensity values of ROIs measured over time and plots the trace to show calcium fluctuations.
 
 ### ./neuron_quantification/ 
-R script for plotting the % of marker+ cells from fluorescent imaging data. Finds sample and group means, tests normality and variance to perform statistical testing, and plots the results on a bar plot.
+Contains an R script for plotting the % of marker+ cells from fluorescent imaging data. Finds sample and group means, tests normality and variance to perform statistical testing, and plots the results on a bar plot.
 
 ### ./protein_standard_curve/
-R script used to generate and analyse protein standard curves from protein concentration assays. The script takes raw absorbance values for standards and samples to plot a standard curve and extrapolate unknown protein concentrations.
+Contains an R script used to generate and analyse protein standard curves from protein concentration assays. The script takes raw absorbance values for standards and samples to plot a standard curve and extrapolate unknown protein concentrations.
 
 ### ./synaptic_protein_cellbody_intensity/
 Contains R scripts for plotting the intensity of synaptic protein localised to the cell body. The scripts take intensity values generated from iSIM super-resolution fluorescent images that have been analysed using NIS-Elements (Nikon) software. Finds sample and group means, tests normality and variance to perform statistical testing, and plots the results on a bar plot.
