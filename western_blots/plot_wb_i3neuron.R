@@ -6,13 +6,13 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_2/"
-relative_filepath = "24.02.27_vamp_stxbp/"
-filename = "empiria_stxbp.xlsx"
-protein_name = "STXBP1"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/ripa_extraction_1/"
+relative_filepath = "24.07.02_snap_psd/"
+filename = "empiria_snap.xlsx"
+protein_name = "SNAP25"
 
-colour1 = "#3A68AE"
-colour2 = "#B9DBF4"
+colour1 = "#2A5C15"
+colour2 = "#70CE48"
 
 # Load data ---------------------------------------------------------------
 
