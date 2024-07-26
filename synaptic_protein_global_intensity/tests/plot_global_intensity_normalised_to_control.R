@@ -8,7 +8,10 @@ library(tidyverse)
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
 relative_filepath = "syp/"
 filename = "PRE_global_intensity_syp.csv"
+
 marker = "synaptophysin"
+entity = "PRE"
+measurement = "MedianIntensity"
 
 
 # Load data ---------------------------------------------------------------
@@ -98,8 +101,11 @@ mean_by_sample = function(data, column_name) {
   return(result)
 }
 
+# Define column name
+column_name = paste0(entity, "_", measurement)
+
 # Find mean for each sample
-sample_means = mean_by_sample(nis_elements_df, "MeanIntensity")
+sample_means = mean_by_sample(nis_elements_df, column_name)
 
 # Normalise the means
 # Extract WT means for normalization
@@ -290,6 +296,8 @@ plot_data = function(group_data, sample_data, annotation_data, x = "Genotype", s
 
 # Make plot
 plot = plot_data(group_means, sample_means, annotation)
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
