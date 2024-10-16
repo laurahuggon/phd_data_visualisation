@@ -7,9 +7,9 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/synper_extraction_practice/"
-relative_filepath = "unc/"
-filename = "empiria_unc.xlsx"
-protein_name = "UNC13A"
+relative_filepath = "stx/"
+filename = "empiria_stx.xlsx"
+protein_name = "Syntaxin 1A"
 
 colour1 = "grey40"
 colour2 = "grey88"
@@ -37,7 +37,7 @@ empiria_data$`Normalized Signal` = as.numeric(empiria_data$`Normalized Signal`)
 
 # Define Replicate and Fraction as a factor with levels
 empiria_data$Replicate = factor(empiria_data$Replicate, levels = c("WT", "Q331K"))
-empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Lysate", "Cytosol", "Synaptosome"))
+empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Total", "Cytosol", "Synaptosome"))
 
 
 # # Find group means --------------------------------------------------------
@@ -51,22 +51,21 @@ empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Lysate", "Cyto
 #     )
 #  
 # 
-# # Normalise samples to control mean ---------------------------------------
-# 
-# # Find the mean of the control group
-# control_mean = group_means %>%
-#   filter(Replicate == "WT") %>% # Where `Replicate` equals `WT`
-#   pull(Group_Mean) # Extracts `Group_Mean` column (in this case, a single value)
-# 
-# # Divide each group mean by the control mean
-# group_means = group_means %>%
-#   mutate(Normalised_Group_Mean = Group_Mean / control_mean)
-# 
-# # Divide each sample by the control mean
-# normalised_to_control = empiria_data %>%
-#   select(Replicate, `Normalized Signal`) %>% # Select the `Replicate` and `Normalized Signal` columns
-#   mutate(Normalised_to_Control = `Normalized Signal` / control_mean) %>%
-#   arrange(Replicate)
+
+# Normalise to WT Total ---------------------------------------------------
+
+# Calculate the mean of WT Total
+wt_total_mean = empiria_data %>%
+  filter(Replicate == "WT" & Fraction == "Total") %>% # Where `Replicate` equals `WT` and `Fraction` equals `Total`
+  pull(`Normalized Signal`) # Extracts `Normalized Signal` column (in this case, a single value)
+
+# Divide each value by the WT Total mean
+empiria_data = empiria_data %>%
+  mutate(foldchange = `Normalized Signal` / wt_total_mean)
+
+# Reverse the foldchange signals except for the value of 1
+# empiria_data <- empiria_data %>%
+#   mutate(foldchange = ifelse(foldchange != 1, -foldchange, foldchange))
 # 
 # # Export .csv
 # write.csv(normalised_to_control, paste0(parent_filepath, relative_filepath, protein_name, "_normalised_to_control.csv"), row.names=FALSE)
@@ -195,10 +194,10 @@ my_theme_facet = function() {
 }
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_normalised = function(empiria_data, x = "Fraction", y = "`Normalized Signal`") {
+plot_normalised = function(empiria_data, x = "Fraction", y = "foldchange") {
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(empiria_data$`Normalized Signal`, na.rm = TRUE)
+  max_y_value = max(empiria_data$foldchange, na.rm = TRUE)
   upper_limit = max_y_value * 1.1 # 10% buffer above the max value
   
   # Create the bar plot
@@ -217,9 +216,12 @@ plot_normalised = function(empiria_data, x = "Fraction", y = "`Normalized Signal
     # Graph titles
     labs(title = protein_name,
          x = "",
-         y = "Normalised Signal",
+         y = "Relative expression (protein)",
          fill = x) +
 
+    # Add horizontal line at y = 1
+    geom_hline(yintercept=1, linetype="dashed", color="black", size=0.3) +
+    
     # Plot appearance
     my_theme_facet() +
     scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
