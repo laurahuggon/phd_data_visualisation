@@ -17,11 +17,11 @@ library(ggbeeswarm)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1_2_4/stx_coloc/"
-filename = "COLOCPRE_BTUB_1-32.csv"
+relative_filepath = "n_1-3/syp_coloc/"
+filename = "COLOCPRE_BTUB_A-X.csv"
 entity = "PRE"
-pre_marker = "syntaxin 1A"
-post_marker = "Homer"
+pre_marker = "synaptophysin"
+post_marker = "PSD-95"
 
 
 # Load data ---------------------------------------------------------------
@@ -97,8 +97,11 @@ nis_elements_df = nis_elements_df %>%
 nis_elements_df = nis_elements_df %>%
   filter(DIV != "28")
 
-nis_elements_df = nis_elements_df %>%
-  filter(DIFF != "5")
+# Remove DIFF 5
+if(startsWith(relative_filepath, "n_1_2_4")) {
+  nis_elements_df = nis_elements_df %>%
+    filter(DIFF != "5")
+}
 
 # Define Genotype and DIV variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
@@ -346,7 +349,8 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
     scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
     
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]], ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
+    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
+                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
                   width = 0.2,
                   position = position_dodge(0.9)) +
     
@@ -417,6 +421,66 @@ all_plots
 
 # Close the device
 dev.off()
+
+# Export test results
+# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
+extract_test_results = function(test_results, data) {
+  results_df = data.frame(
+    DIV = character(),
+    p_value = numeric(),
+    method = character(),
+    alternative = character(),
+    WT_sample_size = integer(),  # Sample size for WT genotype
+    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
+    stringsAsFactors = FALSE
+  )
+  
+  for (div in names(test_results)) {
+    test = test_results[[div]]
+    
+    # Count the number of samples for each genotype within the current DIV
+    wt_sample_count = nrow(subset(data, DIV == div & Genotype == "WT"))
+    q331k_sample_count = nrow(subset(data, DIV == div & Genotype == "Q331K"))
+    
+    new_row = data.frame(
+      DIV = div,
+      p_value = round(test$p.value, 4),  # Round p-value to 4 decimal places
+      method = test$method,
+      alternative = test$alternative,
+      WT_sample_size = wt_sample_count,  # Add WT sample size to the results
+      Q331K_sample_size = q331k_sample_count  # Add Q331K sample size to the results
+    )
+    
+    results_df = rbind(results_df, new_row)
+  }
+  
+  return(results_df)
+}
+
+# Extract results for colocalization, density, and volume
+coloc_test_results_df = extract_test_results(coloc_test_results, nis_elements_df)
+density_test_results_df = extract_test_results(density_test_results, nis_elements_df)
+volume_test_results_df = extract_test_results(volume_test_results, nis_elements_df)
+
+# Convert DIV to a factor with specified levels
+coloc_test_results_df$DIV <- factor(coloc_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+density_test_results_df$DIV <- factor(density_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+volume_test_results_df$DIV <- factor(volume_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+
+# Order by DIV
+coloc_test_results_df <- coloc_test_results_df[order(coloc_test_results_df$DIV), ]
+density_test_results_df <- density_test_results_df[order(density_test_results_df$DIV), ]
+volume_test_results_df <- volume_test_results_df[order(volume_test_results_df$DIV), ]
+
+# Define file paths for saving CSVs
+coloc_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_coloc_test_results_allimages.csv")
+density_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_density_test_results_allimages.csv")
+volume_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_volume_test_results_allimages.csv")
+
+# Export the test results to CSV files
+write.csv(coloc_test_results_df, coloc_csv_path, row.names = FALSE)
+write.csv(density_test_results_df, density_csv_path, row.names = FALSE)
+write.csv(volume_test_results_df, volume_csv_path, row.names = FALSE)
 
 # Loop through the list and print only non-empty reports
 for (name in names(reports_list)) {
