@@ -3,11 +3,12 @@
 
 library(tidyverse)
 library(readxl)
+library(ggrepel)
 
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/wb/i3neuron_synapse/"
 relative_filepath = "synper_extraction_practice/"
 filename = "synper_extraction_practice.xlsx"
 
@@ -51,6 +52,13 @@ my_theme = function() {
 
 # Plot the standard curve using the `Concentration` and `Avg_Absorbance` values for the standards.
 plot = ggplot(data = protein_conc_data, aes(x = Concentration, y = Avg_Absorbance)) +
+  # Cutoff line
+  geom_rect(
+    aes(xmin=-Inf, xmax=0.2, ymin=-Inf, ymax=Inf),
+    fill="grey", alpha=0.05
+  ) +
+  geom_vline(xintercept=0.2, linetype="dashed", color="black", size=0.3) +
+  
   # Linear regression line through the standards
   geom_smooth(data = filter(protein_conc_data, Data_Type == "Standard"),
               method = "lm",
@@ -59,7 +67,7 @@ plot = ggplot(data = protein_conc_data, aes(x = Concentration, y = Avg_Absorbanc
   
   # Scatter plot for standards
   geom_point(data = filter(protein_conc_data, Data_Type == "Standard"),
-             color = "black") +
+             color = "black", shape=15) +
   
   # Graph titles
   labs(title = "Protein standard curve",
@@ -119,15 +127,17 @@ plot = plot +
              color = "red") +
   
   # Equation text
-  annotate("text", x = 0.15, y = 0.3, label = equation, size = 4, color = "black", hjust = 0, vjust = 0) +
+  annotate("text", x = 0.3, y = 0.3, label = equation, size = 4, color = "black", hjust = 0, vjust = 0) +
   
-  # Column titles
-  annotate("text", x = 1.25, y = 0.26, label = "Abs", hjust = 0.5, vjust = 1, size = 4) +
-  annotate("text", x = 1.425, y = 0.26, label = "Conc", hjust = 0.5, vjust = 1, size = 4) +
+  # Absorbance values above each sample point
+  geom_text_repel(data = filter(protein_conc_data, Data_Type == "Sample"),
+                  aes(x = Concentration, y = Avg_Absorbance, label = sprintf("%.3f", Avg_Absorbance)),
+                  nudge_y = 0.015, size = 4, color = "red", direction = "y", vjust = -0.5, segment.color = NA) +
   
-  # Annotations for absorbance and concentration values
-  geom_text(data = samples, aes(x = 1.25, y = y_position, label = sprintf("%.3f", Avg_Absorbance)), hjust = 0.5, vjust = 1, size = 4, color = "black") +
-  geom_text(data = samples, aes(x = 1.425, y = y_position, label = sprintf("%.2f", Interpolated_Concentration)), hjust = 0.5, vjust = 1, size = 4, color = "black")
+  # Concentration values below each sample point (only if conc is >= 0.2)
+  geom_text_repel(data = filter(protein_conc_data, Data_Type == "Sample", Concentration >= 0.2),
+                  aes(x = Concentration, y = Avg_Absorbance, label = sprintf("%.2f", Concentration)),
+                  nudge_y = -0.015, size = 4, color = "red", direction = "y", vjust = 1.5, segment.color = NA)
 
 plot
 
