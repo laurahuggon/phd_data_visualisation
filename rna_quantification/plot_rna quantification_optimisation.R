@@ -6,8 +6,8 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/rna/"
-relative_filepath = "primaries/"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/omics/rna/"
+relative_filepath = "primary/"
 filename = "prep_2.xlsx"
 title = "Optimisation 1 | Pooled 2x wells | Eluted in 10 μL"
 
