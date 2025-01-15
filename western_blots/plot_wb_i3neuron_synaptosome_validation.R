@@ -7,9 +7,9 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/synper_extraction_practice/"
-relative_filepath = "stx/"
-filename = "empiria_stx.xlsx"
-protein_name = "Syntaxin 1A"
+relative_filepath = "unc/"
+filename = "empiria_unc.xlsx"
+protein_name = "UNC13A"
 
 colour1 = "grey40"
 colour2 = "grey88"
@@ -37,7 +37,11 @@ empiria_data$`Normalized Signal` = as.numeric(empiria_data$`Normalized Signal`)
 
 # Define Replicate and Fraction as a factor with levels
 empiria_data$Replicate = factor(empiria_data$Replicate, levels = c("WT", "Q331K"))
-empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Total", "Cytosol", "Synaptosome"))
+empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Homogenate", "Cytosol", "Synaptosome"))
+
+# Remove homogenate
+empiria_data = empiria_data %>%
+  filter(Fraction != "Homogenate")
 
 
 # # Find group means --------------------------------------------------------
@@ -52,16 +56,10 @@ empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Total", "Cytos
 #  
 # 
 
-# Normalise to WT Total ---------------------------------------------------
-
-# Calculate the mean of WT Total
-wt_total_mean = empiria_data %>%
-  filter(Replicate == "WT" & Fraction == "Total") %>% # Where `Replicate` equals `WT` and `Fraction` equals `Total`
-  pull(`Normalized Signal`) # Extracts `Normalized Signal` column (in this case, a single value)
-
-# Divide each value by the WT Total mean
-empiria_data = empiria_data %>%
-  mutate(foldchange = `Normalized Signal` / wt_total_mean)
+# # Normalise to homogenate
+# empiria_data = empiria_data %>%
+#   group_by(Replicate) %>%
+#   mutate(foldchange = abs(`Normalized Signal` / `Normalized Signal`[Fraction=="Homogenate"]))
 
 # Reverse the foldchange signals except for the value of 1
 # empiria_data <- empiria_data %>%
@@ -194,21 +192,21 @@ my_theme_facet = function() {
 }
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_normalised = function(empiria_data, x = "Fraction", y = "foldchange") {
+plot_normalised = function(empiria_data, x = "Fraction", y = "`Normalized Signal`") {
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(empiria_data$foldchange, na.rm = TRUE)
+  max_y_value = max(empiria_data$`Normalized Signal`, na.rm = TRUE)
   upper_limit = max_y_value * 1.1 # 10% buffer above the max value
   
   # Create the bar plot
   p = ggplot(empiria_data, aes_string(x = x,
                                     y = y,
-                                    fill = "Replicate")) +
+                                    fill = "Fraction")) +
     # Bar plot
     geom_col(position = position_dodge(0.9),
              width = 0.6,
              color = "black") +
-    scale_fill_manual(values = c("WT" = colour1, "Q331K" = colour2)) +
+    scale_fill_manual(values = c("Cytosol" = colour1, "Synaptosome" = colour2)) +
     
     # Facet by Replicate
     facet_wrap(~Replicate) +
@@ -216,15 +214,17 @@ plot_normalised = function(empiria_data, x = "Fraction", y = "foldchange") {
     # Graph titles
     labs(title = protein_name,
          x = "",
-         y = "Relative expression (protein)",
+         y = "Normalised Signal",
          fill = x) +
-
-    # Add horizontal line at y = 1
-    geom_hline(yintercept=1, linetype="dashed", color="black", size=0.3) +
     
     # Plot appearance
     my_theme_facet() +
-    scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
+    
+    # Overlay individual data points
+    geom_point(data = empiria_data, aes_string(x = x,
+                                               y = y),
+                       position = position_dodge(0.9), size = 1.5)
   
   # Print the plot
   return(p)
@@ -237,7 +237,7 @@ plot
 
 # Export plot
 # Open a PNG file to save the plot
-png(paste0(parent_filepath, relative_filepath, protein_name, "_enrichment.png"), width=1735, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, protein_name, "_enrichment_short.png"), width=1350, height=900, res=300)
 
 # Create a plot
 plot
