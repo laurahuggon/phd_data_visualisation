@@ -85,8 +85,7 @@ plot_trace = function(data) {
     # Graph titles
      labs(title = genotype,
          x = "Time (s)",
-         y = "Fluo-4 intensity",
-         color = "Cell") +
+         y = "Fluo-4 intensity") + 
      
     # Plot appearance
     my_theme() +
@@ -96,6 +95,8 @@ plot_trace = function(data) {
 
 # Make plot
 plot = plot_trace(trace_data)
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
