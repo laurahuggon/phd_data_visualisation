@@ -22,10 +22,16 @@ empiria_data$Replicate = factor(empiria_data$Replicate, levels = c("NTg", "Q331K
 
 # Reshape data into long format
 long_data = empiria_data %>%
-  pivot_longer(-Replicate, names_to = "Protein", values_to = "Signal") %>%
+  pivot_longer(-c(Replicate, Sex), names_to = "Protein", values_to = "Signal") %>%
   arrange(Protein)
 
-long_data$Protein = factor(long_data$Protein, levels = c("Synaptophysin", "Syntaxin 1A", "VAMP2", "SNAP25", "Munc13-1", "Munc18-1", "PSD-95", "Homer"))
+long_data$Protein = factor(long_data$Protein, levels = c("Synaptophysin", "Syntaxin-1A", "VAMP2", "SNAP-25", "Munc13-1", "Munc18-1", "PSD-95", "Homer-1"))
+
+# Find the maximum y-values -> this is for dynamic annotation bars in the plots
+max_y_per_protein = aggregate(Signal ~ Protein, data=long_data, max)
+# Rename column
+max_y_per_protein = max_y_per_protein %>%
+  rename(max_y = Signal)
 
 
 # Find group means --------------------------------------------------------
@@ -94,7 +100,8 @@ test_results <- long_data %>%
   group_by(Protein) %>%
   summarise(
     p_value = perform_test(cur_data())$test_result$p.value,
-    message = perform_test(cur_data())$message,
+    method = perform_test(cur_data())$test_result$method,
+    alternative = perform_test(cur_data())$test_result$alternative,
     .groups = "drop"
   )
 
@@ -102,19 +109,19 @@ test_results <- long_data %>%
 test_results <- test_results %>%
   mutate(
     Stars = case_when(
-      p_value <= 0.0001 ~ "****",
-      p_value <= 0.001 ~ "***",
-      p_value <= 0.01 ~ "**",
-      p_value <= 0.05 ~ "*",
+      p_value < 0.0001 ~ "****",
+      p_value < 0.001 ~ "***",
+      p_value < 0.01 ~ "**",
+      p_value < 0.05 ~ "*",
       TRUE ~ ""
     )
   )
 
-# Find the maximum y-values -> this is for dynamic annotation bars in the plots
-test_results = test_results %>%
-  mutate(
-    max_y = if_else(Stars != "", max(group_means$Group_Mean + group_means$SD), NA_real_)
-  )
+# Merge the max y-values per protein with the test_results data frame
+test_results = merge(test_results, max_y_per_protein, by = "Protein")
+
+# Replace max_y with NA if not significant
+test_results$max_y = ifelse(test_results$Stars == "", NA, test_results$max_y)
 
 
 # Data visualisation ------------------------------------------------------
@@ -136,7 +143,7 @@ my_theme_facet = function() {
 
 # Calculate the maximum y value to set upper axis limit
 max_y_value = max(group_means$Group_Mean + group_means$SD)
-upper_limit = max_y_value * 1.5  # 50% buffer above the max value
+upper_limit = max_y_value * 1.25  # 25% buffer above the max value
 
 # Define custom labeller function to add "Total " to facet titles
 my_labeller = as_labeller(function(x) paste("Synaptosomal", "\n", x))
@@ -163,24 +170,29 @@ plot = ggplot(group_means, aes_string(
        fill="Genotype") +
   # Plot appearance
   my_theme_facet() +
-  scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
+  scale_y_continuous(limits = c(0, 1.5), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
   # Overlay individual data points
   geom_point(data = long_data, aes_string(x = "Replicate",
-                                            y = "Signal"),
-             position = position_dodge(0.5), size = 1.5) +
+                                          y = "Signal",
+                                          shape = "Sex",
+                                          group = "Replicate"),
+             position = position_dodge(0.5), size = 1.9) +
   # Significance stars
-  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = max_y * 1),
+  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = max_y + 0.09),
             position = position_dodge(width = 0.5), inherit.aes = FALSE, vjust = -0.5,
             size = 7) +  # Adjust size here
   # Significance lines
-  geom_segment(data = test_results, aes(x = 1, xend = 2, y = max_y * 1.05, yend = max_y * 1.05),
+  geom_segment(data = test_results, aes(x = 1, xend = 2, y = max_y + 0.15, yend = max_y + 0.15),
                        linetype = "solid", color = "black", position = position_dodge(width = 0.5), inherit.aes = FALSE) +
   # Remove x-axis labels
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         strip.placement = "outside") +  # Move facet labels below the plot
   # Add dashed line
-  geom_hline(yintercept=1, linetype="dashed", color="black", size=0.3)
+  geom_hline(yintercept=1, linetype="dashed", color="black", size=0.3) +
+  # Control legend order
+  guides(fill = guide_legend(order = 1, override.aes = list(shape = NA)),  # Genotype legend first, removing circle from fill legend
+         shape = guide_legend(order = 2))  # Sex legend second
 
 print(plot)
 
@@ -200,5 +212,50 @@ plot
 # Close the device
 dev.off()
 
-# Print message
-print(message)
+# Export test results
+# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
+extract_test_results = function(test_results, data) {
+  results_df = data.frame(
+    Protein = character(),
+    p_value = numeric(),
+    method = character(),
+    alternative = character(),
+    WT_sample_size = integer(),  # Sample size for WT genotype
+    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
+    stringsAsFactors = FALSE
+  )
+  
+  for (i in seq_len(nrow(test_results))) {
+    # Select current protein
+    protein = test_results$Protein[i]
+    
+    # Subset data for current protein
+    protein_data = subset(data, Protein == protein)
+    
+    # Extract the sample size for each genotype
+    ntg_sample_count <- nrow(subset(protein_data, Replicate == "NTg"))
+    q331k_sample_count <- nrow(subset(protein_data, Replicate == "Q331K"))
+    
+    # Add results for the current protein
+    new_row <- data.frame(
+      Protein = protein,
+      p_value = round(test_results$p_value[i], 4),  # Round p-value to 4 decimal places
+      method = test_results$method[i],  # Statistical test method
+      alternative = test_results$alternative[i],  # Alternative hypothesis
+      NTg_sample_size = ntg_sample_count,  # Sample size for WT genotype
+      Q331K_sample_size = q331k_sample_count  # Sample size for Q331K genotype
+    )
+    # Combine
+    results_df = rbind(results_df, new_row)
+  }
+  return(results_df)
+}
+
+# Extract results
+results_df = extract_test_results(test_results, long_data)
+
+# Define file path for saving CSVs
+csv_path = paste0(parent_filepath, "test_result.csv")
+
+# Export the test results to CSV files
+write.csv(results_df, csv_path, row.names=FALSE)
