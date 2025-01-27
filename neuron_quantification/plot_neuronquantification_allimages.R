@@ -149,13 +149,13 @@ message = result$message
 prepare_annotations = function(test_result) {
   # Convert p-values to stars based on traditional significance levels
   convert_p_to_stars = function(p_value) {
-    if (p_value <= 0.0001) {
+    if (p_value < 0.0001) {
       return("****")
-    } else if (p_value <= 0.001) {
+    } else if (p_value < 0.001) {
       return("***")
-    } else if (p_value <= 0.01) {
+    } else if (p_value < 0.01) {
       return("**")
-    } else if (p_value <= 0.05) {
+    } else if (p_value < 0.05) {
       return("*")
     } else {
       return("")  # Not significant
@@ -334,14 +334,14 @@ extract_test_results = function(test_results, data) {
   return(results_df)
 }
 
-# # Extract results
-# results_df = extract_test_results(test_result, dapibtub_df)
-# 
-# # Define file path for saving CSVs
-# csv_path = paste0(parent_filepath, relative_filepath, marker, "_puncta_", measurement, "intensity_raw.csv")
-# 
-# # Export the test results to CSV files
-# write.csv(results_df, csv_path, row.names=FALSE)
+# Extract results
+results_df = extract_test_results(test_result, dapibtub_df)
+
+# Define file path for saving CSVs
+csv_path = paste0(parent_filepath, "test_result.csv")
+
+# Export the test results to CSV files
+write.csv(results_df, csv_path, row.names=FALSE)
 
 # Print message
 print(message)
