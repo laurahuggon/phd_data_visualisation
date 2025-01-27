@@ -17,9 +17,9 @@ library(ggbeeswarm)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1-3/psd/"
-filename = "POST_BTUB_A-X.csv"
-entity = "POST"
+relative_filepath = "n_1-3/syp/"
+filename = "PRE_BTUB_A-X.csv"
+entity = "PRE"
 pre_marker = "synaptophysin"
 post_marker = "PSD-95"
 
@@ -53,7 +53,7 @@ if (pre_marker == "synaptophysin" && post_marker == "PSD-95") {
   
   suffix_regex = "(?<=_)[A-X](?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture character between two underscores
   
-} else if (pre_marker == "syntaxin 1A" && post_marker == "Homer") {
+} else if (pre_marker == "syntaxin-1A" && post_marker == "Homer-1") {
   genotype_map = c("1" = "Q331K", "2" = "Q331K", "3" = "WT", "4" = "WT",
                    "5" = "Q331K", "6" = "WT", "7" = "WT", "8" = "Q331K",
                    "9" = "Q331K", "10" = "WT", "11" = "Q331K", "12" = "Q331K",
@@ -149,20 +149,20 @@ group_mean_volume = mean_by_group(nis_elements_df, "MeanVolume")
 
 
 # Create a function that calculates the maximum y-values per facet -> this is for dynamic annotation bars in the plots
-calculate_max_y_per_facet = function(group_data) {
-  # Add a new column to the group_data that calculates the potential max height for the error bars
-  group_data$max_y = group_data$Global_Mean + group_data$SD
+calculate_max_y_per_facet = function(data=nis_elements_df, col_name) {
+  # Add a new column to the group_data that calculates the potential max height for the annotation bars
+  data$max_y = data[[col_name]]
   
   # Aggregate these max heights by DIV to get the maximum for each facet
-  max_y_per_div = aggregate(max_y ~ DIV, data = group_data, max)
+  max_y_per_div = aggregate(max_y ~ DIV, data = data, max)
   
   return(max_y_per_div)
 }
 
 # Find maximum y-values per facet for each data type
-max_y_per_div_coloc = calculate_max_y_per_facet(group_mean_coloc)
-max_y_per_div_density = calculate_max_y_per_facet(group_mean_density)
-max_y_per_div_volume = calculate_max_y_per_facet(group_mean_volume)
+max_y_per_div_coloc = calculate_max_y_per_facet(col_name="Coloc")
+max_y_per_div_density = calculate_max_y_per_facet(col_name="Density")
+max_y_per_div_volume = calculate_max_y_per_facet(col_name="MeanVolume")
 
 
 # Statistics --------------------------------------------------------------
@@ -240,13 +240,13 @@ reports_list = list(
 prepare_annotations = function(test_results) {
   # Convert p-values to stars based on traditional significance levels
   convert_p_to_stars = function(p_value) {
-    if (p_value <= 0.0001) {
+    if (p_value < 0.0001) {
       return("****")
-    } else if (p_value <= 0.001) {
+    } else if (p_value < 0.001) {
       return("***")
-    } else if (p_value <= 0.01) {
+    } else if (p_value < 0.01) {
       return("**")
-    } else if (p_value <= 0.05) {
+    } else if (p_value < 0.05) {
       return("*")
     } else {
       return("")  # Not significant
@@ -384,7 +384,7 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
     # `x = 1.5` is used to position the text centrally between the two bars -> assumes that genotype has 2 ordered levels which correspond to position 1 and 2
     # `y = max_y * 1.08` places the text just above the estimated maximum y value
     # `position_dodge(width = 0.9` function is used to align the text with the corresponding bars
-    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y_value * 1),
+    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y * 1.08),
                       position = position_dodge(width = 0.9), inherit.aes = FALSE, vjust = -0.5,
                       size = 7)  # Adjust size here)
     
@@ -392,7 +392,7 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
     # `x` and `xend` set the x-axis positions of the line
     # `y` and `yend` set the y-axis positions of the line
     # `position_dodge(width = 0.9` aligns the line with the bar positions
-    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y_value * 1.05, yend = max_y_value * 1.05),
+    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y * 1.12, yend = max_y * 1.12),
                          linetype = "solid", color = "black", position = position_dodge(width = 0.9), inherit.aes = FALSE)
   }
   
