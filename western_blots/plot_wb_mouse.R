@@ -6,13 +6,13 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_synaptosome/"
-relative_filepath = "munc13/"
-filename = "empiria_munc13.xlsx"
-protein_name = "Munc13-1"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_cytosol/"
+relative_filepath = "stx_hmr/"
+filename = "empiria_hmr.xlsx"
+protein_name = "Homer-1"
 
-colour1 = "#B33F78"
-colour2 = "#EAABDD"
+colour1 = "grey40"
+colour2 = "grey88"
 
 
 # Load data ---------------------------------------------------------------
@@ -27,6 +27,10 @@ empiria_data = read_excel(full_filename)
 empiria_data = na.omit(empiria_data) # Directly removes any rows with any `NA` values
 colnames(empiria_data) = as.character(empiria_data[1,]) # Make the first row the column names
 empiria_data = empiria_data[-1, ] # Remove first row
+
+# Add sex
+empiria_data = empiria_data %>%
+  mutate(Sex = c("F", "F", "M", "F", "F", "M", "M", "M"))
   
 # Replace "Tg" with "Q331K"
 empiria_data$Replicate[empiria_data$Replicate == "Tg"] = "Q331K"
@@ -62,7 +66,7 @@ group_means = group_means %>%
 
 # Divide each sample by the control mean
 normalised_to_control = empiria_data %>%
-  select(Replicate, `Normalized Signal`) %>% # Select the `Replicate` and `Normalized Signal` columns
+  select(Name, Replicate, Sex, `Normalized Signal`) %>% # Select the `Replicate` and `Normalized Signal` columns
   mutate(Normalised_to_Control = `Normalized Signal` / control_mean) %>%
   arrange(Replicate)
 
@@ -223,7 +227,7 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
                   position = position_dodge(0.9)) +
     
     # Graph titles
-    labs(title = paste0("Synaptosomal\n", protein_name),
+    labs(title = paste0("Cytosolic\n", protein_name),
          x = "",
          y = "Relative expression (protein)",
          fill = x) +
@@ -234,8 +238,10 @@ plot_normalised = function(group_data, sample_data, annotation_data, x = "Replic
   
   # Overlay individual data points
   p = p + geom_point(data = sample_data, aes_string(x = x,
-                                                    y = "Normalised_to_Control"),
-                     position = position_dodge(0.9), size = 1.5)
+                                                    y = "Normalised_to_Control",
+                                                    shape = "Sex",
+                                                    group = x),
+                     position = position_dodge(0.9), size = 1.9)
   
   # Add conditional annotations for significant p-values
   if (nrow(annotation_data) > 0) {
@@ -272,7 +278,7 @@ plot
 #
 # For plot title with 2 lines:
 # width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot_colour.png"), width=825, height=1390, res=300)
+png(paste0(parent_filepath, relative_filepath, protein_name, "_wb_plot.png"), width=825, height=1390, res=300)
 
 # Create a plot
 plot
