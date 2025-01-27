@@ -25,7 +25,13 @@ long_data = empiria_data %>%
   pivot_longer(-Replicate, names_to = "Protein", values_to = "Signal") %>%
   arrange(Protein)
 
-long_data$Protein = factor(long_data$Protein, levels = c("Synaptophysin", "Syntaxin 1A", "VAMP2", "SNAP25", "UNC13A", "STXBP1", "PSD-95", "Homer"))
+long_data$Protein = factor(long_data$Protein, levels = c("Synaptophysin", "Syntaxin-1A", "VAMP2", "SNAP-25", "UNC13A", "STXBP1", "PSD-95", "Homer-1"))
+
+# Find the maximum y-values -> this is for dynamic annotation bars in the plots
+max_y_per_protein = aggregate(Signal ~ Protein, data=long_data, max)
+# Rename column
+max_y_per_protein = max_y_per_protein %>%
+  rename(max_y = Signal)
 
 
 # Find group means --------------------------------------------------------
@@ -90,11 +96,16 @@ perform_test = function(data) {
 }
 
 # Perform tests for each protein
+# group_by and summarise are used to iterate over groups of data
 test_results <- long_data %>%
+  # Group by Protein column, which createas a subset of the dataset, where each subset corresponds to a unique protein
   group_by(Protein) %>%
+  # Apply the perform_test function to subset of data
+  # cur_data() refers to the current group's data subset
   summarise(
     p_value = perform_test(cur_data())$test_result$p.value,
-    message = perform_test(cur_data())$message,
+    method = perform_test(cur_data())$test_result$method,
+    alternative = perform_test(cur_data())$test_result$alternative,
     .groups = "drop"
   )
 
@@ -102,21 +113,21 @@ test_results <- long_data %>%
 test_results <- test_results %>%
   mutate(
     Stars = case_when(
-      p_value <= 0.0001 ~ "****",
-      p_value <= 0.001 ~ "***",
-      p_value <= 0.01 ~ "**",
-      p_value <= 0.05 ~ "*",
+      p_value < 0.0001 ~ "****",
+      p_value < 0.001 ~ "***",
+      p_value < 0.01 ~ "**",
+      p_value < 0.05 ~ "*",
       TRUE ~ ""
     )
   )
+  
+# Merge the max y-values per protein with the test_results data frame
+test_results = merge(test_results, max_y_per_protein, by = "Protein")
 
-# Find the maximum y-values -> this is for dynamic annotation bars in the plots
-test_results = test_results %>%
-  mutate(
-    max_y = if_else(Stars != "", max(group_means$Group_Mean + group_means$SD), NA_real_)
-  )
+# Replace max_y with NA if not significant
+test_results$max_y = ifelse(test_results$Stars == "", NA, test_results$max_y)
 
-
+  
 # Data visualisation ------------------------------------------------------
 
 # Create custom ggplot2 theme for facet bar plots
@@ -166,14 +177,14 @@ plot = ggplot(group_means, aes_string(
   scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
   # Overlay individual data points
   geom_point(data = long_data, aes_string(x = "Replicate",
-                                            y = "Signal"),
+                                          y = "Signal"),
              position = position_dodge(0.5), size = 1.5) +
   # Significance stars
-  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = max_y * 1),
+  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = max_y + 0.2),
             position = position_dodge(width = 0.5), inherit.aes = FALSE, vjust = -0.5,
             size = 7) +  # Adjust size here
   # Significance lines
-  geom_segment(data = test_results, aes(x = 1, xend = 2, y = max_y * 1.05, yend = max_y * 1.05),
+  geom_segment(data = test_results, aes(x = 1, xend = 2, y = max_y + 0.4, yend = max_y + 0.4),
                        linetype = "solid", color = "black", position = position_dodge(width = 0.5), inherit.aes = FALSE) +
   # Remove x-axis labels and ticks
   theme(axis.text.x = element_blank(),
@@ -200,5 +211,50 @@ plot
 # Close the device
 dev.off()
 
-# Print message
-print(message)
+# Export test results
+# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
+extract_test_results = function(test_results, data) {
+  results_df = data.frame(
+    Protein = character(),
+    p_value = numeric(),
+    method = character(),
+    alternative = character(),
+    WT_sample_size = integer(),  # Sample size for WT genotype
+    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
+    stringsAsFactors = FALSE
+  )
+  
+  for (i in seq_len(nrow(test_results))) {
+    # Select current protein
+    protein = test_results$Protein[i]
+    
+    # Subset data for current protein
+    protein_data = subset(data, Protein == protein)
+    
+    # Extract the sample size for each genotype
+    wt_sample_count <- nrow(subset(protein_data, Replicate == "WT"))
+    q331k_sample_count <- nrow(subset(protein_data, Replicate == "Q331K"))
+    
+    # Add results for the current protein
+    new_row <- data.frame(
+      Protein = protein,
+      p_value = round(test_results$p_value[i], 4),  # Round p-value to 4 decimal places
+      method = test_results$method[i],  # Statistical test method
+      alternative = test_results$alternative[i],  # Alternative hypothesis
+      WT_sample_size = wt_sample_count,  # Sample size for WT genotype
+      Q331K_sample_size = q331k_sample_count  # Sample size for Q331K genotype
+    )
+    # Combine
+    results_df = rbind(results_df, new_row)
+  }
+  return(results_df)
+}
+
+# Extract results
+results_df = extract_test_results(test_results, long_data)
+
+# Define file path for saving CSVs
+csv_path = paste0(parent_filepath, "test_result.csv")
+
+# Export the test results to CSV files
+write.csv(results_df, csv_path, row.names=FALSE)
