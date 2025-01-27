@@ -11,9 +11,9 @@ protein3_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sColl
 protein4_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPOST_EqDia_hmr.csv"
 
 protein1 = "Synaptophysin"
-protein2 = "Syntaxin 1A"
+protein2 = "Syntaxin-1A"
 protein3 = "PSD-95"
-protein4 = "Homer"
+protein4 = "Homer-1"
 
 
 # Load data ---------------------------------------------------------------
@@ -60,7 +60,7 @@ eq_diameter_stats = eq_diameter_df %>%
   rename(EqDiameter = EqDiameter_Mean)
 
 # Set `Protein` as a factor with levels
-eq_diameter_stats$Protein = factor(eq_diameter_stats$Protein, levels = c("Synaptophysin", "Syntaxin 1A", "PSD-95", "Homer"))
+eq_diameter_stats$Protein = factor(eq_diameter_stats$Protein, levels = c("Synaptophysin", "Syntaxin-1A", "PSD-95", "Homer-1"))
 
 
 # Data visualisation ------------------------------------------------------
@@ -83,9 +83,9 @@ my_theme = function() {
 # Set colours for each protein
 custom_colors = c(
   "Synaptophysin" = "seagreen4",
-  "Syntaxin 1A" = "seagreen4",
+  "Syntaxin-1A" = "seagreen4",
   "PSD-95" = "firebrick2",
-  "Homer" = "firebrick2"
+  "Homer-1" = "firebrick2"
 )
 
 # Create the initial plot with individual points (scatter)
@@ -105,6 +105,8 @@ plot = ggplot(eq_diameter_df, aes(x = Protein, y = EqDiameter, fill = Protein, c
   my_theme() +
   #scale_fill_manual(values = custom_colors) +
   scale_color_manual(values = custom_colors)
+
+plot
 
 # Export plot
 # Open a PNG file to save the plot
