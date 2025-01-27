@@ -16,11 +16,11 @@ library(patchwork)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1-3/syp_coloc/"
-filename = "COLOCPRE_BTUB_A-X.csv"
+relative_filepath = "n_1_2_4/stx_coloc/"
+filename = "COLOCPRE_BTUB_1-32.csv"
 entity = "PRE"
-pre_marker = "synaptophysin"
-post_marker = "PSD-95"
+pre_marker = "syntaxin-1A"
+post_marker = "Homer-1"
 
 
 # Load data ---------------------------------------------------------------
@@ -52,7 +52,7 @@ if (pre_marker == "synaptophysin" && post_marker == "PSD-95") {
   
   suffix_regex = "(?<=_)[A-X](?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture character between two underscores
   
-} else if (pre_marker == "syntaxin 1A" && post_marker == "Homer") {
+} else if (pre_marker == "syntaxin-1A" && post_marker == "Homer-1") {
   genotype_map = c("1" = "Q331K", "2" = "Q331K", "3" = "WT", "4" = "WT",
                    "5" = "Q331K", "6" = "WT", "7" = "WT", "8" = "Q331K",
                    "9" = "Q331K", "10" = "WT", "11" = "Q331K", "12" = "Q331K",
