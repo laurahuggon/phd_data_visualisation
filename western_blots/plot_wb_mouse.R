@@ -7,9 +7,9 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_cytosol/"
-relative_filepath = "stx_hmr/"
-filename = "empiria_hmr.xlsx"
-protein_name = "Homer-1"
+relative_filepath = "munc18_vamp/"
+filename = "empiria_vamp.xlsx"
+protein_name = "VAMP2"
 
 colour1 = "grey40"
 colour2 = "grey88"
