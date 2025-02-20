@@ -6,8 +6,8 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_synaptosome/"
-filename = "synaptosome_allproteins.xlsx"
+parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/mouse_cytosol/"
+filename = "cytosol_allproteins.xlsx"
 
 # Load data ---------------------------------------------------------------
 
@@ -95,8 +95,12 @@ perform_test = function(data) {
   return(list(test_result = test_result, message = message))
 }
 
+# Filter for only complete data
+long_data_filtered = long_data %>%
+  filter(Signal != 0)
+
 # Perform tests for each protein
-test_results <- long_data %>%
+test_results <- long_data_filtered %>%
   group_by(Protein) %>%
   summarise(
     p_value = perform_test(cur_data())$test_result$p.value,
@@ -137,7 +141,9 @@ my_theme_facet = function() {
           axis.title.y = element_text(margin = margin(r = 10), # Adjust y-axis title position
                                       size = 10), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5), # Adjust plot title
     ) 
 }
 
@@ -166,8 +172,9 @@ plot = ggplot(group_means, aes_string(
   facet_wrap(~Protein, nrow=1, strip.position = "bottom") +
   # Graph titles
   labs(x="",
-       y="Relative expression (synaptosomal protein)",
-       fill="Genotype") +
+       y="Relative expression (protein)",
+       fill="Genotype",
+       title="Cytosol") +
   # Plot appearance
   my_theme_facet() +
   scale_y_continuous(limits = c(0, 1.5), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
@@ -259,3 +266,4 @@ csv_path = paste0(parent_filepath, "test_result.csv")
 
 # Export the test results to CSV files
 write.csv(results_df, csv_path, row.names=FALSE)
+
