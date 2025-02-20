@@ -141,7 +141,9 @@ my_theme_facet = function() {
           axis.title.y = element_text(margin = margin(r = 10), # Adjust y-axis title position
                                       size = 10), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          plot.title = element_text(face = "bold",
+                                    hjust = 0.5),# Adjust plot title
     ) 
 }
 
@@ -170,8 +172,9 @@ plot = ggplot(group_means, aes_string(
   facet_wrap(~Protein, nrow=1, strip.position = "bottom") +
   # Graph titles
   labs(x="",
-       y="Relative expression (total protein)",
-       fill="Genotype") +
+       y="Relative expression (protein)",
+       fill="Genotype",
+       title="Total") +
   # Plot appearance
   my_theme_facet() +
   scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
