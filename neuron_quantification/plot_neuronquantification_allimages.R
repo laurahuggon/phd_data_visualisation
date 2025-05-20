@@ -9,7 +9,7 @@ library(ggbeeswarm)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/imaging/echo/imaging_data_y1/neuron_quantification/neun/qupath/qupath_project/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/imaging/echo/imaging_data_y1/neuron_quantification/neun/qupath/qupath_project/"
 
 
 # Load data ---------------------------------------------------------------
@@ -199,10 +199,9 @@ my_theme = function() {
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          plot.title = element_text(face = "bold",
-                                    hjust = 0.5), # Adjust plot title
-          axis.title.y = element_text(margin = margin(r = 7.5), # Adjust y-axis title position
-                                      size = 13), # Adjust y-axis title size
+          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
+          axis.title.y = element_text(margin = margin(r = 15), # Adjust y-axis title position
+                                      size = 12), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
           axis.text.y = element_text(size = 10) # Increase y-axis text size
     ) 
@@ -220,10 +219,10 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
                                     y = "Global_Mean",
                                     fill = x)) +
     # Bar plot
-    geom_col(position = position_dodge(0.9),
-             width = 0.6,
+    geom_col(position = position_dodge(0.7),
+             width = 0.8,
              color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+    scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Error bars
     geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
@@ -239,7 +238,7 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
     
     # Plot appearance
     my_theme() +
-    scale_y_continuous(limits = c(0, 105), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    scale_y_continuous(limits = c(0, 110), expand = c(0, 0))  # Setting both multiplier and add-on to 0
   
   # Define shapes for each DIFF value
   diff_shapes <- c("6" = 21, "7" = 22, "8" = 24)
@@ -248,7 +247,7 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
   p = p + geom_quasirandom(data = dapibtub_df, aes_string(x = x,
                                                               y = col_name,
                                                               shape = "DIFF"),  # Added shape aesthetic
-                           width = 0.2, size = 1.5, fill = "black", alpha = 0.5) +  # Adjust width and alpha transparency here
+                           width = 0.2, size = 1.25, fill = "black", alpha = 0.5) +  # Adjust width and alpha transparency here
     scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
   
   # Add conditional annotations for significant p-values
@@ -278,21 +277,8 @@ plot = plot_data(group_means, "percentage_positive", annotation)
 
 plot
 
-# Export plot
-# Open a PNG file to save the plot
-#
-# For plot title with 1 line:
-# width=825, height=1335
-#
-# For plot title with 2 lines:
-# width=825, height=1390
-png(paste0(parent_filepath, "btub_percentage.png"), width=825, height=1335, res=300)
-
-# Create a plot
-plot
-
-# Close the device
-dev.off()
+# Save plot
+ggsave(paste0(parent_filepath, "btub_percentage.png"), plot=plot, width=1.85, height=3.5, dpi=300, bg="white")
 
 # Histograms
 # plot2 = ggplot(dapibtub_df, aes(x = PRE_MeanIntensity, fill = DIFF, color = DIFF)) +

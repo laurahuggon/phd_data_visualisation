@@ -6,10 +6,10 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/calcium_imaging/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/calcium_imaging/"
 relative_filepath = "23.12.07/traces/"
-filename = "LAURA_TDP43_iCortical_norm_neurobasal.xlsx"
-genotype = "Q331K"
+filename = "LAURA_WT_iCortical_norm_neurobasal.xlsx"
+genotype = "WT"
 
 
 # Load data ---------------------------------------------------------------
@@ -80,7 +80,7 @@ plot_trace = function(data) {
   
   # Create line plot
   ggplot(data_long, aes(x = `Time [s]`, y = Intensity, group = Cell)) +
-    geom_line(color = "black") +  # Add line geometries
+    geom_line(color = "#F3D99E") +  # Add line geometries
    
     # Graph titles
      labs(title = genotype,
@@ -89,7 +89,7 @@ plot_trace = function(data) {
      
     # Plot appearance
     my_theme() +
-    scale_y_continuous(limits = c(lower_limit, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    scale_y_continuous(limits = c(lower_limit, 13000), expand = c(0, 0))  # Setting both multiplier and add-on to 0
 }
 
 # Make plot

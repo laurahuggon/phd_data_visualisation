@@ -1,14 +1,14 @@
 # Load libraries ----------------------------------------------------------
-
 library(tidyverse)
+library(ggbeeswarm)
 
 
 # Define variables --------------------------------------------------------
 
-protein1_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPRE_EqDia_syp.csv"
-protein2_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPRE_EqDia_stx.csv"
-protein3_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPOST_EqDia_psd.csv"
-protein4_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPOST_EqDia_hmr.csv"
+protein1_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPRE_EqDia_syp.csv"
+protein2_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPRE_EqDia_stx.csv"
+protein3_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPOST_EqDia_psd.csv"
+protein4_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/COLOCPOST_EqDia_hmr.csv"
 
 protein1 = "Synaptophysin"
 protein2 = "Syntaxin-1A"
@@ -90,13 +90,17 @@ custom_colors = c(
 
 # Create the initial plot with individual points (scatter)
 plot = ggplot(eq_diameter_df, aes(x = Protein, y = EqDiameter, fill = Protein, color = Protein)) +
-  geom_jitter(width = 0.4, alpha = 0.2) +
-  geom_violin(width = 0.8, alpha = 0.55, color = "Black", fill = "white") +
+  geom_quasirandom(alpha=0.75, size=0.5, groupOnX=TRUE) +
+  #geom_violin(width = 0.8, alpha = 0, color = "Black", fill = "white") +
   labs(x = "",
        y = "Equivalent Diameter (nm)") +
   
+  # Mean line
+  geom_crossbar(data = eq_diameter_stats, aes(x=Protein, y=EqDiameter, ymin=EqDiameter, ymax=EqDiameter),
+                width=0.9, color="black", fatten=1) +
+  
   # Annotate mean, max and min values
-  geom_text(data = eq_diameter_stats, aes(x = Protein, y = EqDiameter, label = sprintf("%.0f nm", EqDiameter)), color = "black", size = 3.5) +
+  geom_text(data = eq_diameter_stats, aes(x = Protein, y = EqDiameter, label = sprintf("%.0f nm", EqDiameter)), vjust=-0.8, color = "black", size = 3.5) +
   geom_text(data = eq_diameter_stats, aes(x = Protein, y = Max, label = sprintf("%.0f nm", Max)), vjust = -0.8, color = "black", size = 3.5) +
   geom_text(data = eq_diameter_stats, aes(x = Protein, y = Min, label = sprintf("%.0f nm", Min)), vjust = 1.8, color = "black", size = 3.5) +
 
@@ -110,7 +114,7 @@ plot
 
 # Export plot
 # Open a PNG file to save the plot
-png(paste0("/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/plot.png"), width=2000, height=1700, res=300)
+png(paste0("/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/plot.png"), width=2000, height=1700, res=300)
 
 # Create a plot
 plot

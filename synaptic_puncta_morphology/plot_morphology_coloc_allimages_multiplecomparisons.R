@@ -16,13 +16,12 @@ library(ggbeeswarm)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
 relative_filepath = "n_1_2_4/stx_coloc/"
 filename = "COLOCPRE_BTUB_1-32.csv"
 entity = "PRE"
-pre_marker = "syntaxin 1A"
-post_marker = "Homer"
-
+pre_marker = "syntaxin-1A"
+post_marker = "Homer-1"
 
 # Load data ---------------------------------------------------------------
 
@@ -53,7 +52,7 @@ if (pre_marker == "synaptophysin" && post_marker == "PSD-95") {
   
   suffix_regex = "(?<=_)[A-X](?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture character between two underscores
   
-} else if (pre_marker == "syntaxin 1A" && post_marker == "Homer") {
+} else if (pre_marker == "syntaxin-1A" && post_marker == "Homer-1") {
   genotype_map = c("1" = "Q331K", "2" = "Q331K", "3" = "WT", "4" = "WT",
                    "5" = "Q331K", "6" = "WT", "7" = "WT", "8" = "Q331K",
                    "9" = "Q331K", "10" = "WT", "11" = "Q331K", "12" = "Q331K",
@@ -93,12 +92,19 @@ nis_elements_df = nis_elements_df %>%
   ) %>%
   select(-Suffix)  # Remove the Suffix column if it's not needed later
 
+# Remove DIV 28
 nis_elements_df = nis_elements_df %>%
-  filter(DIFF != "5")
+  filter(DIV != "28")
+
+# Remove DIFF 5
+if(startsWith(relative_filepath, "n_1_2_4")) {
+  nis_elements_df = nis_elements_df %>%
+    filter(DIFF != "5")
+}
 
 # Define Genotype and DIV variable as a factor with levels
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
-nis_elements_df$DIV = factor(nis_elements_df$DIV, levels = c("7", "14", "21", "28"))
+nis_elements_df$DIV = factor(nis_elements_df$DIV, levels = c("7", "14", "21"))
 
 
 # Find sample means -------------------------------------------------------
@@ -142,20 +148,20 @@ group_mean_volume = mean_by_group(nis_elements_df, "MeanVolumeColoc")
 
 
 # Create a function that calculates the maximum y-values per facet -> this is for dynamic annotation bars in the plots
-calculate_max_y_per_facet = function(group_data) {
-  # Add a new column to the group_data that calculates the potential max height for the error bars
-  group_data$max_y = group_data$Global_Mean + group_data$SD
+calculate_max_y_per_facet = function(data=nis_elements_df, col_name) {
+  # Add a new column to the group_data that calculates the potential max height for the annotation bars
+  data$max_y = data[[col_name]]
   
   # Aggregate these max heights by DIV to get the maximum for each facet
-  max_y_per_div = aggregate(max_y ~ DIV, data = group_data, max)
+  max_y_per_div = aggregate(max_y ~ DIV, data = data, max)
   
   return(max_y_per_div)
 }
 
 # Find maximum y-values per facet for each data type
-max_y_per_div_coloc = calculate_max_y_per_facet(group_mean_coloc)
-max_y_per_div_density = calculate_max_y_per_facet(group_mean_density)
-max_y_per_div_volume = calculate_max_y_per_facet(group_mean_volume)
+max_y_per_div_coloc = calculate_max_y_per_facet(col_name="Coloc")
+max_y_per_div_density = calculate_max_y_per_facet(col_name="DensityColoc")
+max_y_per_div_volume = calculate_max_y_per_facet(col_name="MeanVolumeColoc")
 
 
 # Statistics --------------------------------------------------------------
@@ -231,21 +237,6 @@ reports_list = list(
 
 # Create function that converts p-values to signficance stars and generates a dataframe of annotations
 prepare_annotations = function(test_results) {
-  # Convert p-values to stars based on traditional significance levels
-  convert_p_to_stars = function(p_value) {
-    if (p_value <= 0.0001) {
-      return("****")
-    } else if (p_value <= 0.001) {
-      return("***")
-    } else if (p_value <= 0.01) {
-      return("**")
-    } else if (p_value <= 0.05) {
-      return("*")
-    } else {
-      return("")  # Not significant
-    }
-  }
-  
   # Create a dataframe `annotations`
   annotations = data.frame(
     DIV = names(test_results), # One entry per DIV level
@@ -253,11 +244,29 @@ prepare_annotations = function(test_results) {
     stringsAsFactors = FALSE
   )
   
+  # Apply multiple comparisons adjustment
+  annotations$p.adjust = p.adjust(annotations$p_value, method = "bonferroni")
+  
+  # Convert p-values to stars based on traditional significance levels
+  convert_p_to_stars = function(p_value) {
+    if (p_value < 0.0001) {
+      return("****")
+    } else if (p_value < 0.001) {
+      return("***")
+    } else if (p_value < 0.01) {
+      return("**")
+    } else if (p_value < 0.05) {
+      return("*")
+    } else {
+      return("")  # Not significant
+    }
+  }
+  
   # Convert p-values to stars
-  annotations$Stars = sapply(annotations$p_value, convert_p_to_stars)
+  annotations$Stars = sapply(annotations$p.adjust, convert_p_to_stars)
   
   # Set factor levels for `DIV`
-  annotations$DIV = factor(annotations$DIV, levels = c("7", "14", "21", "28"))
+  annotations$DIV = factor(annotations$DIV, levels = c("7", "14", "21"))
   
   # Filter out non-significant annotations
   annotations = annotations[annotations$Stars != "", ]
@@ -337,17 +346,18 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
                                     fill = x)) +
     # Bar plot
     geom_col(position = position_dodge(0.9),
-             width = 0.6,
+             width = 0.7,
              color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+    scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]], ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
+    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
+                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
                   width = 0.2,
                   position = position_dodge(0.9)) +
     
     # Facet
-    facet_wrap(as.formula(paste0("~ ", facet)), ncol = 4, labeller = my_labeller) +
+    facet_wrap(as.formula(paste0("~ ", facet)), ncol = 3, labeller = my_labeller) +
     
     # Graph titles
     labs(x = "",
@@ -376,7 +386,7 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
     # `x = 1.5` is used to position the text centrally between the two bars -> assumes that genotype has 2 ordered levels which correspond to position 1 and 2
     # `y = max_y * 1.08` places the text just above the estimated maximum y value
     # `position_dodge(width = 0.9` function is used to align the text with the corresponding bars
-    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y_value * 1),
+    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y * 1.08),
                       position = position_dodge(width = 0.9), inherit.aes = FALSE, vjust = -0.5,
                       size = 7)  # Adjust size here)
     
@@ -384,7 +394,7 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
     # `x` and `xend` set the x-axis positions of the line
     # `y` and `yend` set the y-axis positions of the line
     # `position_dodge(width = 0.9` aligns the line with the bar positions
-    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y_value * 1.05, yend = max_y_value * 1.05),
+    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y * 1.12, yend = max_y * 1.12),
                          linetype = "solid", color = "black", position = position_dodge(width = 0.9), inherit.aes = FALSE)
   }
   
@@ -406,13 +416,73 @@ all_plots
 
 # Export plots
 # Open a PNG file to save the plot
-png(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_all_plots_allimages_alldiv.png"), width=2600, height=3800, res=300)
+png(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_all_plots_allimages.png"), width=2000, height=3800, res=300)
 
 # Create a plot
 all_plots
 
 # Close the device
 dev.off()
+
+# Export test results
+# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
+extract_test_results = function(test_results, data) {
+  results_df = data.frame(
+    DIV = character(),
+    p_value = numeric(),
+    method = character(),
+    alternative = character(),
+    WT_sample_size = integer(),  # Sample size for WT genotype
+    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
+    stringsAsFactors = FALSE
+  )
+  
+  for (div in names(test_results)) {
+    test = test_results[[div]]
+    
+    # Count the number of samples for each genotype within the current DIV
+    wt_sample_count = nrow(subset(data, DIV == div & Genotype == "WT"))
+    q331k_sample_count = nrow(subset(data, DIV == div & Genotype == "Q331K"))
+    
+    new_row = data.frame(
+      DIV = div,
+      p_value = round(test$p.value, 4),  # Round p-value to 4 decimal places
+      method = test$method,
+      alternative = test$alternative,
+      WT_sample_size = wt_sample_count,  # Add WT sample size to the results
+      Q331K_sample_size = q331k_sample_count  # Add Q331K sample size to the results
+    )
+    
+    results_df = rbind(results_df, new_row)
+  }
+  
+  return(results_df)
+}
+
+# Extract results for colocalization, density, and volume
+coloc_test_results_df = extract_test_results(coloc_test_results, nis_elements_df)
+density_test_results_df = extract_test_results(density_test_results, nis_elements_df)
+volume_test_results_df = extract_test_results(volume_test_results, nis_elements_df)
+
+# Convert DIV to a factor with specified levels
+coloc_test_results_df$DIV <- factor(coloc_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+density_test_results_df$DIV <- factor(density_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+volume_test_results_df$DIV <- factor(volume_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
+
+# Order by DIV
+coloc_test_results_df <- coloc_test_results_df[order(coloc_test_results_df$DIV), ]
+density_test_results_df <- density_test_results_df[order(density_test_results_df$DIV), ]
+volume_test_results_df <- volume_test_results_df[order(volume_test_results_df$DIV), ]
+
+# Define file paths for saving CSVs
+coloc_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_coloc_test_results_allimages.csv")
+density_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_density_test_results_allimages.csv")
+volume_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_volume_test_results_allimages.csv")
+
+# Export the test results to CSV files
+write.csv(coloc_test_results_df, coloc_csv_path, row.names = FALSE)
+write.csv(density_test_results_df, density_csv_path, row.names = FALSE)
+write.csv(volume_test_results_df, volume_csv_path, row.names = FALSE)
 
 # Loop through the list and print only non-empty reports
 for (name in names(reports_list)) {

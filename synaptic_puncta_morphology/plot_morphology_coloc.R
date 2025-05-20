@@ -11,16 +11,17 @@
 
 library(tidyverse)
 library(patchwork)
+library(scales)
 
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1_2_4/stx_coloc/"
-filename = "COLOCPRE_BTUB_1-32.csv"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
+relative_filepath = "n_1-3/syp_coloc/"
+filename = "COLOCPRE_BTUB_A-X.csv"
 entity = "PRE"
-pre_marker = "syntaxin-1A"
-post_marker = "Homer-1"
+pre_marker = "synaptophysin"
+post_marker = "PSD-95"
 
 
 # Load data ---------------------------------------------------------------
@@ -305,12 +306,13 @@ my_theme_facet = function() {
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          panel.spacing = unit(1, "lines"),  # Adjust space between facet panels
-          strip.text = element_text(size = 12, face = "bold"),  # Increase facet title size and make it bold
-          axis.title.y = element_text(margin = margin(r = 10), # Adjust y-axis title position
+          axis.title.y = element_text(margin = margin(r = 15), # Adjust y-axis title position
                                       size = 12), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          # Facet-specific
+          panel.spacing = unit(1, "lines"),  # Adjust space between facet panels
+          strip.text = element_text(size = 11, face = "bold")  # Increase facet title size and make it bold
     ) 
 }
 
@@ -321,27 +323,17 @@ plot_by_genotype_div = function(group_data, sample_data, annotation_data, x = "G
   
   # Determine y-axis label based on the inferred dataframe name
   if (grepl("coloc", data_name)) {
-    y_label = bquote("Colocalised " * .(protein_name) * " puncta (%)")
+    y_label = paste0("Colocalised ", protein_name, "\npuncta (%)")
   } else if (grepl("density", data_name)) {
-    y_label = bquote("Density of coloc " * .(protein_name) * " puncta (puncta/μm3)")
+    y_label = paste0("Density of ", protein_name, "\npuncta (puncta/μm³)")
   } else if (grepl("volume", data_name)) {
-    y_label = bquote("Volume of coloc " * .(protein_name) * " puncta (μm3)")
+    y_label = paste0("Volume of ", protein_name, "\npuncta (μm³)")
   } else {
-    y_label = "Mean"  # Default label if no specific identifier is found
-  }
-  
-  # Check if the necessary columns exist in the group_data
-  if (!all(c(x, y = "Global_Mean", sd, facet) %in% names(group_data))) {
-    stop("group_data does not contain the necessary columns.")
-  }
-  
-  # Check if the necessary columns exist in the sample_data
-  if (!all(c(x, y = "N_Mean", facet) %in% names(sample_data))) {
-    stop("sample_data does not contain the necessary columns.")
+    y_label = "Mean"
   }
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(group_data[["Global_Mean"]] + group_data[[sd]], na.rm = TRUE)
+  max_y_value = max(sample_data$N_Mean, na.rm = TRUE)
   upper_limit = max_y_value * 1.25  # 25% buffer above the max value
   
   # Define custom labeller function to add "DIV " to facet titles
@@ -353,17 +345,18 @@ plot_by_genotype_div = function(group_data, sample_data, annotation_data, x = "G
                                     fill = x)) +
     # Bar plot
     geom_col(position = position_dodge(0.9),
-             width = 0.6,
+             width = 0.8,
              color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
-    
+    scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
+
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]], ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
+    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
+                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
                   width = 0.2,
                   position = position_dodge(0.9)) +
     
     # Facet
-    facet_wrap(as.formula(paste0("~ ", facet)), ncol = 3, labeller = my_labeller) +
+    facet_wrap(as.formula(paste0("~ ", facet)), ncol = 3, labeller = my_labeller, axes="all") +
     
     # Graph titles
     labs(x = "",
@@ -371,13 +364,25 @@ plot_by_genotype_div = function(group_data, sample_data, annotation_data, x = "G
          fill = x) +
     
     # Plot appearance
-    my_theme_facet() +
-    scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    my_theme_facet()
   
-  # Overlay individual data points
+  # Set y-axis ticks
+  if (grepl("coloc", data_name)) {
+    upper_limit = 110
+    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))
+  } else {
+    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = label_number(accuracy=0.01))
+  }
+  
+  # Define shapes for each DIFF value
+  diff_shapes <- c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
+  
+  # Overlay individual data points with different shapes for DIFF
   p = p + geom_point(data = sample_data, aes_string(x = x,
-                                                    y = "N_Mean"),
-                     position = position_dodge(0.9), size = 1.5)
+                                                          y = "N_Mean",
+                                                          shape = "DIFF"),  # Added shape aesthetic
+                           width = 0.2, size = 1.25, fill = "black") +  # Adjust width and alpha transparency here
+    scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
   
   # Add conditional annotations for significant p-values
   # The placement of annotations specific to facets relies on the use of `annotation_data` that contains significance annotations and max y-values that are merged with specific facet information (`DIV`)
@@ -387,15 +392,15 @@ plot_by_genotype_div = function(group_data, sample_data, annotation_data, x = "G
     # `x = 1.5` is used to position the text centrally between the two bars -> assumes that genotype has 2 ordered levels which correspond to position 1 and 2
     # `y = max_y * 1.08` places the text just above the estimated maximum y value
     # `position_dodge(width = 0.9` function is used to align the text with the corresponding bars
-    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y * 1.08),
+    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y + 0.05*upper_limit),
                       position = position_dodge(width = 0.9), inherit.aes = FALSE, vjust = -0.5,
-                      size = 7)  # Adjust size here)
+                      size = 6)  # Adjust size here
     
     # Add significance line
     # `x` and `xend` set the x-axis positions of the line
     # `y` and `yend` set the y-axis positions of the line
     # `position_dodge(width = 0.9` aligns the line with the bar positions
-    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y * 1.12, yend = max_y * 1.12),
+    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = (max_y + 0.09*upper_limit), yend = (max_y + 0.09*upper_limit)),
                          linetype = "solid", color = "black", position = position_dodge(width = 0.9), inherit.aes = FALSE)
   }
   
@@ -415,15 +420,8 @@ all_plots = coloc_plot /
 
 all_plots
 
-# Export plots
-# Open a PNG file to save the plot
-png(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_all_plots.png"), width=2000, height=3800, res=300)
-
-# Create a plot
-all_plots
-
-# Close the device
-dev.off()
+# Save plot
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_all_plots.png"), plot=all_plots, width=5.25, height=10.5, dpi=300, bg="white")
 
 # Export test results
 # Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
@@ -476,9 +474,9 @@ density_test_results_df <- density_test_results_df[order(density_test_results_df
 volume_test_results_df <- volume_test_results_df[order(volume_test_results_df$DIV), ]
 
 # Define file paths for saving CSVs
-coloc_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_coloc_test_results.csv")
-density_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_density_test_results.csv")
-volume_csv_path = paste0(parent_filepath, relative_filepath, protein_name, "_volume_test_results.csv")
+coloc_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_coloc_test_results.csv")
+density_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_density_test_results.csv")
+volume_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_volume_test_results.csv")
 
 # Export the test results to CSV files
 write.csv(coloc_test_results_df, coloc_csv_path, row.names = FALSE)

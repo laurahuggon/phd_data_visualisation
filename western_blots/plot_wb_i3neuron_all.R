@@ -3,10 +3,11 @@
 
 library(tidyverse)
 library(readxl)
+library(scales)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/"
 filename = "total_allproteins.xlsx"
 
 # Load data ---------------------------------------------------------------
@@ -136,14 +137,14 @@ my_theme_facet = function() {
     theme(
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          panel.spacing = unit(0.25, "lines"),  # Adjust space between facet panels
-          strip.text = element_text(size = 10),  # Increase facet title size and make it bold
-          axis.title.y = element_text(margin = margin(r = 10), # Adjust y-axis title position
-                                      size = 10), # Adjust y-axis title size
+          plot.title = element_text(face = "bold", hjust = 0.5),# Adjust plot title
+          axis.title.y = element_text(margin = margin(r = 15), # Adjust y-axis title position
+                                      size = 12), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
           axis.text.y = element_text(size = 10), # Increase y-axis text size
-          plot.title = element_text(face = "bold",
-                                    hjust = 0.5),# Adjust plot title
+          # Facet-specific
+          panel.spacing = unit(0.5, "lines"),  # Adjust space between facet panels
+          strip.text = element_text(size = 10)  # Increase facet title size
     ) 
 }
 
@@ -161,15 +162,15 @@ plot = ggplot(group_means, aes_string(
                                 )) +
   # Bar plot
   geom_col(position = position_dodge(0.5),
-          width = 0.6,
+          width = 0.8,
           color = "black") +
-  scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+  scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
   # Error bars
   geom_errorbar(aes(ymin=Group_Mean - SD, ymax=Group_Mean + SD),
                 width=0.2,
                 position=position_dodge(0.5)) +
   # Facet
-  facet_wrap(~Protein, nrow=1, strip.position = "bottom") +
+  facet_wrap(~Protein, nrow=1, strip.position = "bottom", axes="all") +
   # Graph titles
   labs(x="",
        y="Relative expression (protein)",
@@ -177,18 +178,18 @@ plot = ggplot(group_means, aes_string(
        title="Total") +
   # Plot appearance
   my_theme_facet() +
-  scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
+  scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = label_number(accuracy = 0.1)) +  # Setting both multiplier and add-on to 0
   # Overlay individual data points
   geom_point(data = long_data, aes_string(x = "Replicate",
                                           y = "Signal"),
              position = position_dodge(0.5), size = 1.5) +
   # Significance stars
-  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = max_y + 0.2),
+  geom_text(data = test_results, aes(label = Stars, x = 1.5, y = (max_y + 0.065*upper_limit)),
             position = position_dodge(width = 0.5), inherit.aes = FALSE, vjust = -0.5,
-            size = 7) +  # Adjust size here
+            size = 6) +  # Adjust size here
   # Significance lines
-  geom_segment(data = test_results, aes(x = 1, xend = 2, y = max_y + 0.4, yend = max_y + 0.4),
-                       linetype = "solid", color = "black", position = position_dodge(width = 0.5), inherit.aes = FALSE) +
+  geom_segment(data = test_results, aes(x = 1, xend = 2, y = (max_y + 0.1*upper_limit), yend = (max_y + 0.1*upper_limit)),
+               linetype = "solid", color = "black", position = position_dodge(width = 0.5), inherit.aes = FALSE) +
   # Remove x-axis labels and ticks
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
@@ -198,21 +199,8 @@ plot = ggplot(group_means, aes_string(
 
 print(plot)
 
-# Export plot
-# Open a PNG file to save the plot
-#
-# For plot title with 1 line:
-# width=825, height=1335
-#
-# For plot title with 2 lines:
-# width=825, height=1390
-png(paste0(parent_filepath, "wb_plot_all.png"), width=3500, height=1000, res=300)
-
-# Create a plot
-plot
-
-# Close the device
-dev.off()
+# Save plot
+ggsave("/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/wb_plot_all.png", plot=plot, width=12, height=3.5, dpi=300, bg="white")
 
 # Export test results
 # Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results

@@ -6,13 +6,13 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/synper_extraction_practice/"
-relative_filepath = "stx/"
-filename = "empiria_stx.xlsx"
-protein_name = "Syntaxin-1A"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/synper_extraction_practice/"
+relative_filepath = "hmr/"
+filename = "empiria_hmr.xlsx"
+protein_name = "Homer-1"
 
-colour1 = "grey40"
-colour2 = "grey88"
+colour1 = "#A1D0E6"
+colour2 = "#91ACA1"
 
 # Load data ---------------------------------------------------------------
 
@@ -37,11 +37,16 @@ empiria_data$`Normalized Signal` = as.numeric(empiria_data$`Normalized Signal`)
 
 # Define Replicate and Fraction as a factor with levels
 empiria_data$Replicate = factor(empiria_data$Replicate, levels = c("WT", "Q331K"))
-empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Homogenate", "Cytosol", "Synaptosome"))
+empiria_data = empiria_data %>%
+  mutate(Fraction = recode(Fraction,
+                           "Homogenate" = "Hom",
+                           "Cytosol" = "Cyt",
+                           "Synaptosome" = "Syn"))
+empiria_data$Fraction = factor(empiria_data$Fraction, levels = c("Hom", "Cyt", "Syn"))
 
 # Remove homogenate
 empiria_data = empiria_data %>%
-  filter(Fraction != "Homogenate") %>%
+  filter(Fraction != "Hom") %>%
   select(Lane, Replicate, Fraction, MW, `Normalized Signal`)
 
 
@@ -54,12 +59,13 @@ my_theme_facet = function() {
           plot.title = element_text(hjust = 0.5, face = "bold"), # Center and bold the title
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          panel.spacing = unit(1, "lines"),  # Adjust space between facet panels
-          strip.text = element_text(size = 12, face = "bold"),  # Increase facet title size and make it bold
-          axis.title.y = element_text(margin = margin(r = 10), # Adjust y-axis title position
+          axis.title.y = element_text(margin = margin(r = 15), # Adjust y-axis title position
                                       size = 12), # Adjust y-axis title size
           axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          # Facet-specific
+          panel.spacing = unit(1, "lines"),  # Adjust space between facet panels
+          strip.text = element_text(size = 11, face = "bold"),  # Increase facet title size and make it bold
     ) 
 }
 
@@ -76,12 +82,12 @@ plot_normalised = function(data, x = "Fraction", y = "`Normalized Signal`") {
                                     fill = "Fraction")) +
     # Bar plot
     geom_col(position = position_dodge(0.9),
-             width = 0.6,
+             width = 0.8,
              color = "black") +
-    scale_fill_manual(values = c("Cytosol" = colour1, "Synaptosome" = colour2)) +
+    scale_fill_manual(values = c("Cyt" = colour1, "Syn" = colour2)) +
     
     # Facet by Replicate
-    facet_wrap(~Replicate) +
+    facet_wrap(~Replicate, axes="all") +
     
     # Graph titles
     labs(title = protein_name,
@@ -109,15 +115,8 @@ plot = plot_normalised(empiria_data)
 
 plot
 
-# Export plot
-# Open a PNG file to save the plot
-png(paste0(parent_filepath, relative_filepath, protein_name, "_enrichment_short.png"), width=1350, height=900, res=300)
-
-# Create a plot
-plot
-
-# Close the device
-dev.off()
+# Save plot
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_enrichment_cytsyn.png"), plot=plot, width=3.2, height=3.5, dpi=300, bg="white")
 
 # # Print message
 # print(message)

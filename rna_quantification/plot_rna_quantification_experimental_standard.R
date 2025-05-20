@@ -5,7 +5,7 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/omics/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/omics/"
 relative_filepath = "rna/"
 filename = "rna_samples.xlsx"
 title = ""
@@ -95,9 +95,9 @@ plot = function(nanodrop_data, x = "Sample", y, fill = "Genotype") {
     
     # Bar plot
     geom_col(position = position_dodge(0.7),
-             width = 0.6,
+             width = 0.8,
              color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+    scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Graph titles
     labs(#title = title,
