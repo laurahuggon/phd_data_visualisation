@@ -6,7 +6,7 @@ library(readxl)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/calcium_imaging/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y2/calcium_imaging/"
 relative_filepath = "23.12.07/traces/"
 filename = "LAURA_WT_iCortical_norm_neurobasal.xlsx"
 genotype = "WT"
@@ -72,25 +72,24 @@ plot_trace = function(data) {
   
   # Calculate the maximum y value to set upper axis limit
   max_y_value = max(data_long[["Intensity"]], na.rm = TRUE)
-  upper_limit = max_y_value * 1.025  # 2.5% buffer above the max value
+  upper_limit = max_y_value * 1.25  # 2.5% buffer above the max value
   
   # Calculate the minimum y value to set upper axis limit
   min_y_value = min(data_long[["Intensity"]], na.rm = TRUE)
   lower_limit = min_y_value * 0.975  # 2.5% buffer below the min value
   
   # Create line plot
-  ggplot(data_long, aes(x = `Time [s]`, y = Intensity, color = Cell)) +
-    geom_line() +  # Add line geometries
+  ggplot(data_long, aes(x = `Time [s]`, y = Intensity, group = Cell)) +
+    geom_line(color = "#F3D99E") +  # Add line geometries
    
     # Graph titles
      labs(title = genotype,
          x = "Time (s)",
-         y = "Fluo-4 intensity") + 
+         y = "Mean fluo-4 intensity") +
      
     # Plot appearance
     my_theme() +
-    scale_y_continuous(limits = c(lower_limit, upper_limit), expand = c(0, 0)) +  # Setting both multiplier and add-on to 0
-    guides(color = guide_legend(title = NULL))  # Remove legend title
+    scale_y_continuous(limits = c(lower_limit, 13000), expand = c(0, 0))  # Setting both multiplier and add-on to 0
 }
 
 # Make plot
@@ -100,7 +99,7 @@ plot
 
 # Export plot
 # Open a PNG file to save the plot
-png(paste0(parent_filepath, relative_filepath, genotype, "_calcium_trace.png"), width=2150, height=1335, res=300)
+png(paste0(parent_filepath, relative_filepath, genotype, "_calcium_trace_bw.png"), width=2150, height=1335, res=300)
 
 # Create a plot
 plot
