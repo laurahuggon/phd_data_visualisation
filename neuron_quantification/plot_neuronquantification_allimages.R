@@ -184,10 +184,10 @@ prepare_annotations = function(test_result) {
 # Create annotations
 annotation = prepare_annotations(test_result)
 
-# Find the maximum y-values -> this is for dynamic annotation bars in the plots
+# Find max y from individual data points -> this is for dynamic annotation bars in the plots
 annotation = annotation %>%
   mutate(
-    max_y = max(group_means$Global_Mean + group_means$SD)
+    max_y = max(dapibtub_df$percentage_positive)
   )
 
 
@@ -208,10 +208,10 @@ my_theme = function() {
 }
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd = "SD") {
+plot_data = function(group_data, group_col_name, individual_data, individual_col_name, annotation_data = annotation, x = "Genotype") {
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(dapibtub_df[[col_name]], na.rm = TRUE)
+  max_y_value = max(individual_data[[individual_col_name]], na.rm = TRUE)
   upper_limit = max_y_value * 1.25  # 25% buffer above the max value
   
   # Create the bar plot
@@ -225,8 +225,8 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
     scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
-                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
+    geom_errorbar(aes(ymin = group_data[[group_col_name]] - SD,
+                      ymax = group_data[[group_col_name]] + SD),
                   width = 0.2,
                   position = position_dodge(0.9)) +
     
@@ -244,8 +244,8 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
   diff_shapes <- c("6" = 21, "7" = 22, "8" = 24)
   
   # Overlay individual data points with different shapes for DIFF
-  p = p + geom_quasirandom(data = dapibtub_df, aes_string(x = x,
-                                                              y = col_name,
+  p = p + geom_quasirandom(data=individual_data, aes_string(x = x,
+                                                              y = individual_col_name,
                                                               shape = "DIFF"),  # Added shape aesthetic
                            width = 0.2, size = 1.25, fill = "black", alpha = 0.5) +  # Adjust width and alpha transparency here
     scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
@@ -273,25 +273,12 @@ plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd =
 }
 
 # Make plot
-plot = plot_data(group_means, "percentage_positive", annotation)
+plot = plot_data(group_means, "Global_Mean", dapibtub_df, "percentage_positive")
 
 plot
 
 # Save plot
-ggsave(paste0(parent_filepath, "btub_percentage.png"), plot=plot, width=1.85, height=3.5, dpi=300, bg="white")
-
-# Histograms
-# plot2 = ggplot(dapibtub_df, aes(x = PRE_MeanIntensity, fill = DIFF, color = DIFF)) +
-#   geom_density(alpha = 0.4, size = 0.5, adjust = 1.5) +  # Adjust the smoothness
-#   labs(title = paste0("Density Plot of ", measurement, " (", marker, ")"),
-#        x = measurement,
-#        y = "Density") +
-#   theme_minimal() +
-#   theme(legend.position = "right") +
-#   xlim(min(dapibtub_df$PRE_MeanIntensity) - 500, max(dapibtub_df$PRE_MeanIntensity) + 750) +
-#   facet_wrap(~ Genotype, scales = "free_y")  # Separate plots by Genotype
-# 
-# plot2
+ggsave(paste0(parent_filepath, "btub_percentage_allimages.png"), plot=plot, width=1.85, height=3.5, dpi=300, bg="white")
 
 # Export test results
 # Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
@@ -324,7 +311,7 @@ extract_test_results = function(test_results, data) {
 results_df = extract_test_results(test_result, dapibtub_df)
 
 # Define file path for saving CSVs
-csv_path = paste0(parent_filepath, "test_result.csv")
+csv_path = paste0(parent_filepath, "test_result_allimages.csv")
 
 # Export the test results to CSV files
 write.csv(results_df, csv_path, row.names=FALSE)
