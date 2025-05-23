@@ -65,18 +65,19 @@ eq_diameter_stats$Protein = factor(eq_diameter_stats$Protein, levels = c("Synapt
 
 # Data visualisation ------------------------------------------------------
 
-# Create custom ggplot2 theme for scatter plots 
+# Create custom ggplot2 theme for bar plots
 my_theme = function() {
   theme_minimal() +
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          #plot.title = element_text(face = "bold",
-                                    #hjust = 0.5), # Adjust plot title
-          axis.title.y = element_text(margin = margin(r = 21), # Adjust y-axis title position
-                                      size = 13), # Adjust y-axis title size
-          axis.text.x = element_text(size = 10, margin = margin(t = 8)), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
+          axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
+          axis.text.x = element_text(size = 10), # Increase x-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          # Facet-specific
+          # panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
+          # strip.text = element_size(size = 10) # Facet title size
     ) 
 }
 
@@ -107,18 +108,13 @@ plot = ggplot(eq_diameter_df, aes(x = Protein, y = EqDiameter, fill = Protein, c
 
 # Plot appearance
   my_theme() +
+  theme(
+    axis.text.x = element_text(margin = margin(t=8))
+  ) +
   #scale_fill_manual(values = custom_colors) +
   scale_color_manual(values = custom_colors)
 
 plot
 
 # Export plot
-# Open a PNG file to save the plot
-png(paste0("/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/plot.png"), width=2000, height=1700, res=300)
-
-# Create a plot
-plot
-
-# Close the device
-dev.off()
-
+ggsave("/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/eq_diameter/plot.png", plot=plot, width=6, height=5, dpi=300, bg="white")
