@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(readxl)
+library(ggbeeswarm)
 
 
 # Define variables --------------------------------------------------------
@@ -59,20 +60,20 @@ dapibtub_df = dapibtub_df %>%
 
 # Find sample means -------------------------------------------------------
 
-# Create function that finds sample means for a given variable
-mean_by_sample = function(data, value_col, grouping_col) {
-  # Group and summarise
-  result = data %>%
-    group_by(!!!syms(grouping_col)) %>%
-    summarise(
-      N = n(), # Count the number of images in each sample
-      Sample_Mean = mean(.data[[value_col]]), # Calculate mean for each sample
-    )
-  return(result)
-}
-
-# Find mean for each sample
-sample_means = mean_by_sample(dapibtub_df, "percentage_positive", c("Genotype", "DIFF"))
+# # Create function that finds sample means for a given variable
+# mean_by_sample = function(data, value_col, grouping_col) {
+#   # Group and summarise
+#   result = data %>%
+#     group_by(!!!syms(grouping_col)) %>%
+#     summarise(
+#       N = n(), # Count the number of images in each sample
+#       Sample_Mean = mean(.data[[value_col]]), # Calculate mean for each sample
+#     )
+#   return(result)
+# }
+# 
+# # Find mean for each sample
+# sample_means = mean_by_sample(dapibtub_df, "percentage_positive", c("Genotype", "DIFF"))
 
 
 # Find group means --------------------------------------------------------
@@ -91,7 +92,7 @@ mean_by_group = function(data, value_col, grouping_col) {
 }
 
 # Find mean for each group
-group_means = mean_by_group(sample_means, "Sample_Mean", "Genotype")
+group_means = mean_by_group(dapibtub_df, "percentage_positive", "Genotype")
 
 
 # Statistics --------------------------------------------------------------
@@ -101,8 +102,8 @@ perform_test = function(data, value_col, grouping_col, ctrl_group, exp_group) {
   
   # Extract data for groups
   # [[1]] pulls the first (and only) column as a vector
-  ctrl_data = data[data[[grouping_col]] == ctrl_group, value_col][[1]]
-  exp_data = data[data[[grouping_col]] == exp_group, value_col][[1]]
+  ctrl_data = data[data[[grouping_col]] == ctrl_group, value_col]
+  exp_data = data[data[[grouping_col]] == exp_group, value_col]
   
   # Test for normality using Shapiro-Wilk test
   # The variable is set to TRUE if the p-value is greater than 0.05 (if data is greater than 0.05, it is considered normally distributed)
@@ -133,7 +134,7 @@ perform_test = function(data, value_col, grouping_col, ctrl_group, exp_group) {
 }
 
 # Perform t-test
-test_result_list = perform_test(sample_means, "Sample_Mean", "Genotype", "WT", "Q331K")
+test_result_list = perform_test(dapibtub_df, "percentage_positive", "Genotype", "WT", "Q331K")
 
 # Convert to dataframe
 test_result = data.frame(
@@ -158,7 +159,7 @@ test_result = test_result %>%
 
 # Find max y-value from individual data points
 test_result = test_result %>%
-  mutate(max_y = max(sample_means$Sample_Mean)) %>%
+  mutate(max_y = max(dapibtub_df$percentage_positive)) %>%
   # Replace max_y with NA if not significant
   mutate(max_y = ifelse(stars == "", NA, max_y))
 
@@ -215,11 +216,12 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
   diff_shapes = c("6" = 21, "7" = 22, "8" = 24)
   
   # Overlay individual data points (optional with different shapes for DIFF)
-  p = p + geom_point(data=individual_data, aes_string(x = x,
+  p = p + geom_quasirandom(data=individual_data, aes_string(x = x,
                                                       y = individual_col_name,
                                                       shape = "DIFF"),
+                           width = 0.2,
                      size = 1.25,
-                     fill = "black") +
+                     fill = "black", alpha = 0.5) +
     scale_shape_manual(values = diff_shapes) 
   
   # Significance stars
@@ -245,16 +247,18 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
 
 
 # Make plot
-plot = plot_data(group_means, "Group_Mean", sample_means, "Sample_Mean", "Genotype")
+plot = plot_data(group_means, "Group_Mean", dapibtub_df, "percentage_positive", "Genotype")
 
 plot
 
 # Save plot
-ggsave(paste0(parent_filepath, "btub_percentage.png"), plot=plot, width=1.85, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, "btub_percentage_allimages.png"), plot=plot, width=1.85, height=3.5, dpi=300, bg="white")
 
 # Export test results
 # Define file path for saving CSVs
-csv_path = paste0(parent_filepath, "test_result.csv")
+csv_path = paste0(parent_filepath, "test_result_allimages.csv")
 
 # Export the test results to CSV files
 write.csv(test_result, csv_path, row.names=FALSE)
+
+
