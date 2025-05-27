@@ -209,6 +209,9 @@ create_test_result_df = function(data, facet_grouping) {
       alternative = do.call(perform_test, c(list(data=cur_data()), args))$test_result$alternative
     )
   
+  # Apply multiple comparisons adjustment
+  # test_result$p.adjust = p.adjust(test_result$p.value, method = "bonferroni")
+  
   # Add significance stars
   test_result = test_result %>%
     mutate(
