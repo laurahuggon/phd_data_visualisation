@@ -359,7 +359,6 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
   p = p + geom_text(data = test_results, aes(label = stars,
                                              x = 1.5,
                                              y = (max_y + 0.1*upper_limit)),
-                    position = position_dodge(width = 0.5),
                     inherit.aes = FALSE,
                     size = 6)  # Adjust size here
   # Significance lines
@@ -369,7 +368,6 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
                                                 yend = (max_y + 0.075*upper_limit)),
                        linetype = "solid",
                        color = "black",
-                       position = position_dodge(width = 0.5),
                        inherit.aes = FALSE)
   
   # Print the plot

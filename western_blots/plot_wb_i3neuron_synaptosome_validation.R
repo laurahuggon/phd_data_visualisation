@@ -58,64 +58,6 @@ empiria_data = empiria_data %>%
 
 # Data visualisation ------------------------------------------------------
 
-# Create custom ggplot2 theme for facet bar plots
-# Create custom ggplot2 theme for bar plots
-my_theme = function() {
-  theme_minimal() +
-    theme(legend.position = "none",
-          axis.line = element_line(colour = "black"),  # Add axis lines
-          axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
-          axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
-          axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10), # Increase y-axis text size
-          # Facet-specific
-          panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
-          strip.text = element_text(size = 10, face = "bold") # Facet title size
-    ) 
-}
-
-# Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_normalised = function(data, x = "Fraction", y = "`Normalized Signal`") {
-  
-  # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(empiria_data$`Normalized Signal`, na.rm = TRUE)
-  upper_limit = max_y_value * 1.1 # 10% buffer above the max value
-  
-  # Create the bar plot
-  p = ggplot(empiria_data, aes_string(x = x,
-                                    y = y,
-                                    fill = "Fraction")) +
-    # Bar plot
-    geom_col(position = position_dodge(0.9),
-             width = 0.8,
-             color = "black") +
-    scale_fill_manual(values = c("Cyt" = colour1, "Syn" = colour2)) +
-    
-    # Facet by Replicate
-    facet_wrap(~Replicate, axes="all") +
-    
-    # Graph titles
-    labs(title = protein_name,
-         x = "",
-         y = "Normalised Signal",
-         fill = x) +
-    
-    # Plot appearance
-    my_theme() +
-    scale_y_continuous(limits = c(0, upper_limit),   # Set the y-axis range
-                       expand = c(0, 0)  # Remove extra space around the axis
-                       ) +
-    
-    # Overlay individual data points
-    geom_point(data = empiria_data, aes_string(x = x,
-                                               y = y),
-                       position = position_dodge(0.9), size = 1.5)
-  
-  # Print the plot
-  return(p)
-}
-
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
 plot_data = function(group_data, group_col_name, individual_data, individual_col_name, x, facet_grouping) {
   
@@ -168,7 +110,6 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
   # p = p + geom_text(data = test_results, aes(label = stars,
   #                                            x = 1.5,
   #                                            y = (max_y + 0.1*upper_limit)),
-  #                   position = position_dodge(width = 0.5),
   #                   inherit.aes = FALSE,
   #                   size = 6)  # Adjust size here
   # # Significance lines
@@ -178,7 +119,6 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
   #                                               yend = (max_y + 0.075*upper_limit)),
   #                      linetype = "solid",
   #                      color = "black",
-  #                      position = position_dodge(width = 0.5),
   #                      inherit.aes = FALSE) 	
   # Print the plot
   return(p)
