@@ -18,11 +18,11 @@ library(scales)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1-3/syp_coloc/"
-filename = "COLOCPRE_BTUB_A-X.csv"
+relative_filepath = "n_1_2_4/stx_coloc/"
+filename = "COLOCPRE_BTUB_1-32.csv"
 entity = "PRE"
-pre_marker = "synaptophysin"
-post_marker = "PSD-95"
+pre_marker = "syntaxin-1A"
+post_marker = "Homer-1"
 
 # Load data ---------------------------------------------------------------
 
@@ -107,189 +107,154 @@ if(startsWith(relative_filepath, "n_1_2_4")) {
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
 nis_elements_df$DIV = factor(nis_elements_df$DIV, levels = c("7", "14", "21"))
 
+# Split dataframe per metric
+coloc = nis_elements_df %>%
+  select(Filename:Entity, ColocCount:Coloc, Genotype:DIV)
+
+density = nis_elements_df %>%
+  select(Filename:Entity, ColocCount, TotalNeuriteVolume, DensityColoc, Genotype:DIV)
+
+volume = nis_elements_df %>%
+  select(Filename:Entity, MeanVolumeColoc:ColocCount, Genotype:DIV)
+
 
 # Find sample means -------------------------------------------------------
 
-# Create function that finds sample means for a given variable
-# mean_by_sample = function(data, column_name) {
-#   # Group by Genotype, DIV, DIFF
+# mean_by_sample = function(data, value_col, grouping_col) {
+#   # Group and summarise
 #   result = data %>%
-#     group_by(Genotype, DIV, DIFF) %>%
+#     group_by(!!!syms(grouping_col)) %>%
 #     summarise(
 #       N = n(), # Count the number of images in each sample
-#       N_Mean = mean(.data[[column_name]]), # Calculate mean for each sample
+#       Sample_Mean = mean(.data[[value_col]]), # Calculate mean for each sample
 #     )
 #   return(result)
 # }
 # 
-# # Find mean colocalisation, density and volume for each sample
-# sample_mean_coloc = mean_by_sample(nis_elements_df, "Coloc")
-# sample_mean_density = mean_by_sample(nis_elements_df, "DensityColoc")
-# sample_mean_volume = mean_by_sample(nis_elements_df, "MeanVolumeColoc")
+# # Find mean for each sample
+# sample_mean_coloc = mean_by_sample(coloc, "Coloc", c("DIV", "Genotype", "DIFF"))
+# sample_mean_density = mean_by_sample(density, "DensityColoc", c("DIV", "Genotype", "DIFF"))
+# sample_mean_volume= mean_by_sample(volume, "MeanVolumeColoc", c("DIV", "Genotype", "DIFF"))
 
 # Find group means --------------------------------------------------------
 
 # Create function that finds group means for a given variable
-mean_by_group = function(data, column_name) {
-  # Group by Genotype, DIV
+mean_by_group = function(data, value_col, grouping_col) {
+  # Group and summarise
   result = data %>%
-    group_by(Genotype, DIV) %>%
+    group_by(!!!syms(grouping_col)) %>%
     summarise(
       N = n(), # Count the number of samples in each group
-      Global_Mean = mean(.data[[column_name]]), # Calculate mean for each group
-      SD = sd(.data[[column_name]]) # Calculate the SD for each group
+      Group_Mean = mean(.data[[value_col]]), # Calculate mean for each group
+      SD = sd(.data[[value_col]]) # Calculate the SD for each group
     )
   return(result)
 }
 
-# Find mean colocalisation, density and volume for each group
-group_mean_coloc = mean_by_group(nis_elements_df, "Coloc")
-group_mean_density = mean_by_group(nis_elements_df, "DensityColoc")
-group_mean_volume = mean_by_group(nis_elements_df, "MeanVolumeColoc")
-
-
-# Create a function that calculates the maximum y-values per facet -> this is for dynamic annotation bars in the plots
-calculate_max_y_per_facet = function(data=nis_elements_df, col_name) {
-  # Add a new column to the group_data that calculates the potential max height for the annotation bars
-  data$max_y = data[[col_name]]
-  
-  # Aggregate these max heights by DIV to get the maximum for each facet
-  max_y_per_div = aggregate(max_y ~ DIV, data = data, max)
-  
-  return(max_y_per_div)
-}
-
-# Find maximum y-values per facet for each data type
-max_y_per_div_coloc = calculate_max_y_per_facet(col_name="Coloc")
-max_y_per_div_density = calculate_max_y_per_facet(col_name="DensityColoc")
-max_y_per_div_volume = calculate_max_y_per_facet(col_name="MeanVolumeColoc")
+# Find mean for each group
+group_mean_coloc = mean_by_group(coloc, "Coloc", c("DIV", "Genotype"))
+group_mean_density = mean_by_group(density, "DensityColoc", c("DIV", "Genotype"))
+group_mean_volume = mean_by_group(volume, "MeanVolumeColoc", c("DIV", "Genotype"))
 
 
 # Statistics --------------------------------------------------------------
 
 # Create function to test normality, equal variance, and perform appropriate statistical test
-perform_tests_with_report = function(data, col_name) {
-  # Extract unique DIV levels to perform the t-test for each level separately
-  div_levels = unique(data$DIV) # Extract unique values from the DIV column
+perform_test = function(data, value_col, grouping_col, ctrl_group, exp_group) {
   
-  # Create an empty list to store test results
-  test_results = list()
+  # Extract data for groups
+  # [[1]] pulls the first (and only) column as a vector
+  ctrl_data = data[data[[grouping_col]] == ctrl_group, value_col][[1]]
+  exp_data = data[data[[grouping_col]] == exp_group, value_col][[1]]
   
-  # Initialize the report with the 'Message' column
-  report = data.frame(Message = character(), stringsAsFactors = FALSE)
+  # Test for normality using Shapiro-Wilk test
+  # The variable is set to TRUE if the p-value is greater than 0.05 (if data is greater than 0.05, it is considered normally distributed)
+  ctrl_normal = shapiro.test(ctrl_data)$p.value > 0.05
+  exp_normal = shapiro.test(exp_data)$p.value > 0.05
   
-  # Loop through each DIV level - allows performance of separate analyses at each time point
-  for (div in div_levels) {
-    # Subset data by DIV
-    data_div = subset(data, DIV == div) # Extract rows from dataframe where DIV matches the current DIV level in the loop
+  if (!ctrl_normal || !exp_normal) { # If either variable is set to `FALSE`
+    # If data is not normally distributed, perform Mann-Whitney test
+    test_result = wilcox.test(exp_data, ctrl_data)
+  } else {
+    # If both groups are normally distributed, test for equal variances using F-test
+    # If p-value is greater than 0.05, it assumes both groups have equal variances
+    var_test = var.test(exp_data, ctrl_data)$p.value > 0.05
     
-    # Extract Mean values for each genotype
-    wt_data = subset(data_div, Genotype == "WT")[[col_name]]
-    q331k_data = subset(data_div, Genotype == "Q331K")[[col_name]]
-    
-    # Test for normality using Shapiro-Wilk test
-    wt_normal = shapiro.test(wt_data)$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-    # `wt_normal` is set to `TRUE` if p-value is greater than 0.05
-    q331k_normal = shapiro.test(q331k_data)$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-    # `qk_normal` is set to `TRUE` if p-value is greater than 0.05
-    
-    if (!wt_normal || !q331k_normal) { # If either variable is set to `FALSE`
-      # If either group is not normally distributed, perform Mann-Whitney test
-      message = paste("DIV", div, ": data not normally distributed; perform Mann-Whitney test")
-      report = rbind(report, data.frame(Message = message, stringsAsFactors = FALSE))
-      test_results[[div]] = wilcox.test(wt_data, q331k_data) # `wt_data` and `q331k_data` are vectors containing the `Mean` values for each genotype at the current DIV level
-      # Store the results in a list, `test_results`, under a key created using the current DIV value (`div`)
+    if (!var_test) { # If `var_equal` variable is set to `FALSE`
+      # If variances are not equal, perform t-test with var.equal = FALSE
+      test_result = t.test(exp_data, ctrl_data, var.equal = FALSE)
     } else {
-      # If both groups are normally distributed, test for equal variance using the F-test
-      var_equal = var.test(wt_data, q331k_data)$p.value > 0.05 # If p-value is greater than 0.05, it assumes both genotypes have equal variances
-      
-      if (!var_equal) { # If `var_equal` variable is set to `FALSE`
-        # If variances are not equal, perform t-test with var.equal = FALSE
-        message = paste("DIV", div, ": data does not have equal variance; perform Welch's t-test")
-        report = rbind(report, data.frame(Message = message, stringsAsFactors = FALSE))
-        test_results[[div]] = t.test(wt_data, q331k_data, var.equal = FALSE) 
-      } else {
-        # If variances are equal, perform t-test with var.equal = TRUE
-        test_results[[div]] = t.test(wt_data, q331k_data, var.equal = TRUE)
-      }
+      # If variances are equal, perform t-test with var.equal = TRUE					
+      test_result = t.test(exp_data, ctrl_data, var.equal = TRUE)
     }
   }
   
-  # Return both test results and the report
-  return(list(test_results = test_results, report = report))
+  # Return test results
+  return(list(test_result = test_result,
+              n_ctrl = length(ctrl_data),
+              n_exp = length(exp_data)))
 }
 
-# Perform the tests with reporting for each data type
-coloc_results = perform_tests_with_report(nis_elements_df, "Coloc")
-density_results = perform_tests_with_report(nis_elements_df, "DensityColoc")
-volume_results = perform_tests_with_report(nis_elements_df, "MeanVolumeColoc")
+create_test_result_df = function(data, facet_grouping) {
+  # group_by and summarise can be used to iterate over groups of data
+  test_result = data %>%
+    # Group by facet_grouping column, which creates a subset of long_data, where each subset corresponds to a facet group
+    group_by(!!!syms(facet_grouping)) %>%
+    # Apply the perform_test function to each subset of data
+    summarise(
+      n_ctrl = do.call(perform_test, c(list(data=cur_data()), args))$n_ctrl,
+      n_exp = do.call(perform_test, c(list(data=cur_data()), args))$n_exp,
+      p.value = do.call(perform_test, c(list(data=cur_data()), args))$test_result$p.value,
+      method = do.call(perform_test, c(list(data=cur_data()), args))$test_result$method,
+      alternative = do.call(perform_test, c(list(data=cur_data()), args))$test_result$alternative
+    )
+  
+  # Add significance stars
+  test_result = test_result %>%
+    mutate(
+      stars = case_when(
+        p.value < 0.0001 ~ "****",
+        p.value < 0.001 ~ "***",
+        p.value < 0.01 ~ "**",
+        p.value < 0.05 ~ "*",
+        TRUE ~ ""
+      )
+    )
+  
+  # Find maximum y-value per facet
+  max_y_per_facet = data %>%
+    group_by(!!!syms(facet_grouping)) %>%
+    summarise(
+      max_y = max(.data[[args$value_col]])
+    )
+  
+  # Merge maximum y-values with test_result
+  test_result = merge(test_result, max_y_per_facet, by=facet_grouping)
+  
+  # Replace max_y with NA if not significant
+  test_result = test_result %>%
+    mutate(max_y = ifelse(stars == "", NA, max_y)) %>%
+    arrange(!!!syms(facet_grouping))
+  
+  return(test_result)
+  
+}
 
-# Accessing the test results
-coloc_test_results = coloc_results$test_results
-density_test_results = density_results$test_results
-volume_test_results = volume_results$test_results
-
-# Collect all the reports into a named list
-reports_list = list(
-  Coloc = coloc_results$report,
-  Density = density_results$report,
-  Volume = volume_results$report
+# Perform t-test for each facet
+args = list(
+  value_col = "Coloc",
+  grouping_col = "Genotype", 
+  ctrl_group = "WT",
+  exp_group = "Q331K"
 )
 
-# Create function that converts p-values to signficance stars and generates a dataframe of annotations
-prepare_annotations = function(test_results) {
-  # Convert p-values to stars based on traditional significance levels
-  convert_p_to_stars = function(p_value) {
-    if (p_value < 0.0001) {
-      return("****")
-    } else if (p_value < 0.001) {
-      return("***")
-    } else if (p_value < 0.01) {
-      return("**")
-    } else if (p_value < 0.05) {
-      return("*")
-    } else {
-      return("")  # Not significant
-    }
-  }
-  
-  # Create a dataframe `annotations`
-  annotations = data.frame(
-    DIV = names(test_results), # One entry per DIV level
-    p_value = sapply(test_results, function(x) x$p.value), # Extract p-values
-    stringsAsFactors = FALSE
-  )
-  
-  # Convert p-values to stars
-  annotations$Stars = sapply(annotations$p_value, convert_p_to_stars)
-  
-  # Set factor levels for `DIV`
-  annotations$DIV = factor(annotations$DIV, levels = c("7", "14", "21"))
-  
-  # Filter out non-significant annotations
-  annotations = annotations[annotations$Stars != "", ]
-  
-  return(annotations)
-}
+test_result_coloc = create_test_result_df(coloc, "DIV")
 
-# Create annotations for each data type
-coloc_annotations = prepare_annotations(coloc_test_results)
-density_annotations = prepare_annotations(density_test_results)
-volume_annotations = prepare_annotations(volume_test_results)
+args$value_col = "DensityColoc"
+test_result_density = create_test_result_df(density, "DIV")
 
-# Create a function that merges max y-values with annotations -> this is for dynamic annotation bars in the plots
-merge_annotations_with_max_y = function(annotations, max_y_per_div) {
-  # Merge the max y-values per DIV with the annotations data frame
-  annotations = merge(annotations, max_y_per_div, by = "DIV")
-  
-  return(annotations)
-}
-
-# Merge max y-values with annotations for each data type
-coloc_annotations = merge_annotations_with_max_y(coloc_annotations, max_y_per_div_coloc)
-density_annotations = merge_annotations_with_max_y(density_annotations, max_y_per_div_density)
-volume_annotations = merge_annotations_with_max_y(volume_annotations, max_y_per_div_volume)
-
+args$value_col = "MeanVolumeColoc"
+test_result_volume = create_test_result_df(volume , "DIV")
 
 # Data visualisation ------------------------------------------------------
 
@@ -300,24 +265,25 @@ protein_name = if (entity == "PRE") {
   post_marker
 }
 
-# Create custom ggplot2 theme for facet bar plots
-my_theme_facet = function() {
+# Create custom ggplot2 theme for bar plots
+my_theme = function() {
   theme_minimal() +
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          axis.title.y = element_text(margin = margin(r = 15), # Adjust y-axis title position
-                                      size = 12), # Adjust y-axis title size
+          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
+          axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
           axis.text.x = element_text(size = 10), # Increase x-axis text size
           axis.text.y = element_text(size = 10), # Increase y-axis text size
           # Facet-specific
-          panel.spacing = unit(1, "lines"),  # Adjust space between facet panels
-          strip.text = element_text(size = 11, face = "bold")  # Increase facet title size and make it bold
+          panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
+          strip.text = element_text(size = 10, face="bold") # Facet title size
     ) 
 }
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Genotype", sd = "SD", facet = "DIV") {
+plot_data = function(group_data, group_col_name, individual_data, individual_col_name, x, facet_grouping, test_results = test_result) {
+  
   # Extracting the name of the dataframe
   data_name = deparse(substitute(group_data)) # Get the name of the `group_data` dataframe as a string
   
@@ -333,185 +299,113 @@ plot_by_genotype_div = function(group_data, col_name, annotation_data, x = "Geno
   }
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(nis_elements_df[[col_name]], na.rm = TRUE)
+  max_y_value = max(individual_data[[individual_col_name]], na.rm = TRUE)
   upper_limit = max_y_value * 1.25  # 25% buffer above the max value
   
   # Define custom labeller function to add "DIV " to facet titles
   my_labeller = as_labeller(function(x) paste("DIV", x))
   
+  # Reformulate
+  facet_formula = reformulate(facet_grouping)
+  
   # Create the bar plot
-  p = ggplot(group_data, aes_string(x = x,
-                                    y = "Global_Mean",
+  p = ggplot(group_data, aes_string(x = x, 
+                                    y = group_col_name,
                                     fill = x)) +
+    
     # Bar plot
-    geom_col(position = position_dodge(0.9),
-             width = 0.8,
-             color = "black") +
+    geom_col(width = 0.8, color = "black") +
     scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
-                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
-                  width = 0.2,
-                  position = position_dodge(0.9)) +
+    geom_errorbar(aes(ymin = .data[[group_col_name]] - SD,
+                      ymax = .data[[group_col_name]] + SD),
+                  width = 0.2) +
     
     # Facet
-    facet_wrap(as.formula(paste0("~ ", facet)), ncol = 3, labeller = my_labeller, axes="all") +
+    facet_wrap(facet_formula, nrow=1, labeller = my_labeller, axes= "all") +
     
     # Graph titles
-    labs(x = "",
+    labs(title = "",
+         x = "",
          y = y_label,
-         fill = x) +
+         fill = x) + # Legend title
     
     # Plot appearance
-    my_theme_facet()
+    my_theme()
   
-  # Set y-axis ticks
   if (grepl("coloc", data_name)) {
-    upper_limit = 110
-    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))
+    p = p + scale_y_continuous(limits = c(0, 100), expand = c(0, 0))  # Setting both multiplier and add-on to 0
   } else {
-    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = label_number(accuracy=0.01))
+    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = label_number(accuracy=0.01))  # Setting both multiplier and add-on to 0
   }
+  
   # Define shapes for each DIFF value
-  diff_shapes <- c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
+  diff_shapes = c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
   
-  # Overlay individual data points with different shapes for DIFF
-  p = p + geom_quasirandom(data = nis_elements_df, aes_string(x = x,
-                                                              y = col_name,
-                                                              shape = "DIFF"),  # Added shape aesthetic
-                           width = 0.2, size = 1.25, fill = "black", alpha = 0.5) +  # Adjust width and alpha transparency here
-    scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
+  # Overlay individual data points (optional with different shapes for DIFF)
+  p = p + geom_quasirandom(data=individual_data, aes_string(x = x,
+                                                      y = individual_col_name,
+                                                      shape = "DIFF"),
+                     width = 0.2,
+                     size = 1.25,
+                     fill = "black", alpha = 0.5) +
+    scale_shape_manual(values = diff_shapes) 
   
-  # Add conditional annotations for significant p-values
-  # The placement of annotations specific to facets relies on the use of `annotation_data` that contains significance annotations and max y-values that are merged with specific facet information (`DIV`)
-  # Uses the `DIV` column in `annotation_data` to apply significant annnotations to the corresponding facets
-  if (nrow(annotation_data) > 0) {
-    # Add significance stars
-    # `x = 1.5` is used to position the text centrally between the two bars -> assumes that genotype has 2 ordered levels which correspond to position 1 and 2
-    # `y = max_y * 1.08` places the text just above the estimated maximum y value
-    # `position_dodge(width = 0.9` function is used to align the text with the corresponding bars
-    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y + 0.05*upper_limit),
-                      position = position_dodge(width = 0.9), inherit.aes = FALSE, vjust = -0.5,
-                      size = 6)  # Adjust size here
-    
-    # Add significance line
-    # `x` and `xend` set the x-axis positions of the line
-    # `y` and `yend` set the y-axis positions of the line
-    # `position_dodge(width = 0.9` aligns the line with the bar positions
-    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = (max_y + 0.09*upper_limit), yend = (max_y + 0.09*upper_limit)),
-                         linetype = "solid", color = "black", position = position_dodge(width = 0.9), inherit.aes = FALSE)
-  }
+  # Significance stars
+  p = p + geom_text(data = test_results, aes(label = stars,
+                                             x = 1.5,
+                                             y = (max_y + 0.1*upper_limit)),
+                    position = position_dodge(width = 0.5),
+                    inherit.aes = FALSE,
+                    size = 6)  # Adjust size here
+  # Significance lines
+  p = p + geom_segment(data = test_results, aes(x = 1,
+                                                xend = 2,
+                                                y = (max_y + 0.075*upper_limit),
+                                                yend = (max_y + 0.075*upper_limit)),
+                       linetype = "solid",
+                       color = "black",
+                       position = position_dodge(width = 0.5),
+                       inherit.aes = FALSE)
   
   # Print the plot
   return(p)
 }
 
-# Make plots for each data type
-coloc_plot = plot_by_genotype_div(group_mean_coloc, "Coloc", coloc_annotations)
-density_plot = plot_by_genotype_div(group_mean_density, "DensityColoc", density_annotations)
-volume_plot = plot_by_genotype_div(group_mean_volume, "MeanVolumeColoc", volume_annotations)
-
-# Arrange plots
-all_plots = coloc_plot /
-  density_plot /
-  volume_plot
-
-all_plots
+# Make plot
+coloc_plot = plot_data(group_mean_coloc, "Group_Mean", coloc, "Coloc", "Genotype", "DIV", test_results = test_result_coloc)
+density_plot = plot_data(group_mean_density, "Group_Mean", density, "DensityColoc", "Genotype", "DIV", test_results = test_result_density)
+volume_plot = plot_data(group_mean_volume, "Group_Mean", volume, "MeanVolumeColoc", "Genotype", "DIV", test_results = test_result_volume)
+volume_plot
 
 # Save plot
-ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_all_plots_allimages.png"), plot=all_plots, width=5.25, height=10.5, dpi=300, bg="white")
-
-# Export test results
-# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
-extract_test_results = function(test_results, data) {
-  results_df = data.frame(
-    DIV = character(),
-    p_value = numeric(),
-    method = character(),
-    alternative = character(),
-    WT_sample_size = integer(),  # Sample size for WT genotype
-    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
-    stringsAsFactors = FALSE
-  )
-  
-  for (div in names(test_results)) {
-    test = test_results[[div]]
-    
-    # Count the number of samples for each genotype within the current DIV
-    wt_sample_count = nrow(subset(data, DIV == div & Genotype == "WT"))
-    q331k_sample_count = nrow(subset(data, DIV == div & Genotype == "Q331K"))
-    
-    new_row = data.frame(
-      DIV = div,
-      p_value = round(test$p.value, 4),  # Round p-value to 4 decimal places
-      method = test$method,
-      alternative = test$alternative,
-      WT_sample_size = wt_sample_count,  # Add WT sample size to the results
-      Q331K_sample_size = q331k_sample_count  # Add Q331K sample size to the results
-    )
-    
-    results_df = rbind(results_df, new_row)
-  }
-  
-  return(results_df)
-}
-
-# Extract results for colocalization, density, and volume
-coloc_test_results_df = extract_test_results(coloc_test_results, nis_elements_df)
-density_test_results_df = extract_test_results(density_test_results, nis_elements_df)
-volume_test_results_df = extract_test_results(volume_test_results, nis_elements_df)
-
-# Convert DIV to a factor with specified levels
-coloc_test_results_df$DIV <- factor(coloc_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
-density_test_results_df$DIV <- factor(density_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
-volume_test_results_df$DIV <- factor(volume_test_results_df$DIV, levels = c("7", "14", "21"), ordered = TRUE)
-
-# Order by DIV
-coloc_test_results_df <- coloc_test_results_df[order(coloc_test_results_df$DIV), ]
-density_test_results_df <- density_test_results_df[order(density_test_results_df$DIV), ]
-volume_test_results_df <- volume_test_results_df[order(volume_test_results_df$DIV), ]
-
-# Define file paths for saving CSVs
-coloc_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_coloc_test_results_allimages.csv")
-density_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_density_test_results_allimages.csv")
-volume_csv_path = paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_volume_test_results_allimages.csv")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloccoloc_allimages.png"), plot=coloc_plot, width=4.5, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocdensity_images.png"), plot=density_plot, width=4.5, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocvolume_allimages.png"), plot=volume_plot, width=4.5, height=3.5, dpi=300, bg="white")
 
 # Export the test results to CSV files
-write.csv(coloc_test_results_df, coloc_csv_path, row.names = FALSE)
-write.csv(density_test_results_df, density_csv_path, row.names = FALSE)
-write.csv(volume_test_results_df, volume_csv_path, row.names = FALSE)
-
-# Loop through the list and print only non-empty reports
-for (name in names(reports_list)) {
-  report = reports_list[[name]]
-  if (nrow(report) > 0) {
-    # Add a title to distinguish reports
-    cat(paste("\n", name, "Report:\n"))
-    # Print only the message content without headers
-    cat(report$Message, sep = "\n")
-  }
-}
-
-
+write.csv(test_result_coloc, paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_test_result_coloc_allimages.csv"), row.names=FALSE)
+write.csv(test_result_density, paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_test_result_density_allimages.csv"), row.names=FALSE)
+write.csv(test_result_volume, paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_test_result_volume_allimages.csv"), row.names=FALSE)
+    
+               
 # Density plot ------------------------------------------------------------
 
 my_labeller = as_labeller(function(x) paste("DIV", x))
 
-kde = ggplot(data=nis_elements_df, aes(x=MeanVolumeColoc, color=Genotype, fill=Genotype)) +
+kde = ggplot(data=volume, aes(x=MeanVolumeColoc, color=Genotype, fill=Genotype)) +
   geom_density(alpha=0.2) +
   facet_wrap(~ DIV, labeller = my_labeller, ncol=3, axes="all") +
   scale_color_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
   scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
-  geom_vline(data=group_mean_volume, aes(xintercept=Global_Mean, colour=Genotype), linetype="dashed") +
-  my_theme_facet() +
+  geom_vline(data=group_mean_volume, aes(xintercept=Group_Mean, colour=Genotype), linetype="dashed") +
+  my_theme() +
   theme(legend.position = "right",
-        axis.title.x = element_text(margin = margin(t = 10), size = 12)) + # Adjust x-axis title position
+        axis.title.x = element_text(margin = margin(t = 15), size = 12)) + # Adjust x-axis title position
   labs(x = paste0("Mean volume of ", protein_name, " puncta (μm³)"))
 
-kde
+# kde
 
 # Save plot
-ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloc_density.png"), plot=kde, width=14, height=3, dpi=300, bg="white")
-                   
-                  
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocvolume_densityplot.png"), plot=kde, width=14, height=3.5, dpi=300, bg="white")                  
