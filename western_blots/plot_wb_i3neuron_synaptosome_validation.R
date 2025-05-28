@@ -7,9 +7,9 @@ library(readxl)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/wb/i3neuron_synapse/synper_extraction_practice/"
-relative_filepath = "vamp/"
-filename = "empiria_vamp.xlsx"
-protein_name = "VAMP2"
+relative_filepath = "hmr/"
+filename = "empiria_hmr.xlsx"
+protein_name = "Homer-1"
 
 colour1 = "#A1D0E6"
 colour2 = "#91ACA1"
@@ -57,6 +57,23 @@ empiria_data = empiria_data %>%
 
 
 # Data visualisation ------------------------------------------------------
+
+# Create custom ggplot2 theme for bar plots
+my_theme = function() {
+  theme_minimal() +
+    theme(legend.position = "none",
+          axis.line = element_line(colour = "black"),  # Add axis lines
+          axis.ticks = element_line(colour = "black"),  # Add axis ticks
+          plot.title = element_text(face = "bold", hjust = 0.5, size = 12), # Adjust plot title
+          axis.title.x = element_text(margin = margin(t = 15), size = 12), # Adjust x-axis title
+          axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
+          axis.text.x = element_text(size = 10), # Increase x-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          # Facet-specific
+          panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
+          strip.text = element_text(size = 12, face = "bold") # Facet title size
+    ) 
+}
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
 plot_data = function(group_data, group_col_name, individual_data, individual_col_name, x, facet_grouping) {
