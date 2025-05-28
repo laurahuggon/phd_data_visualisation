@@ -171,13 +171,14 @@ my_theme = function() {
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
+          plot.title = element_text(face = "bold", hjust = 0.5, size = 12), # Adjust plot title
+          axis.title.x = element_text(margin = margin(t = 15), size = 12), # Adjust x-axis title
           axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
           axis.text.x = element_text(size = 10), # Increase x-axis text size
           axis.text.y = element_text(size = 10), # Increase y-axis text size
           # Facet-specific
-          # panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
-          # strip.text = element_size(size = 10) # Facet title size
+          panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
+          strip.text = element_text(size = 10) # Facet title size
     ) 
 }
 
