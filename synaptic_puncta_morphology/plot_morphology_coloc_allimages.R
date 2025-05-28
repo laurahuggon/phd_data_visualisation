@@ -274,13 +274,14 @@ my_theme = function() {
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          plot.title = element_text(face = "bold", hjust = 0.5), # Adjust plot title
+          plot.title = element_text(face = "bold", hjust = 0.5, size = 12), # Adjust plot title
+          axis.title.x = element_text(margin = margin(t = 15), size = 12), # Adjust x-axis title
           axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
           axis.text.x = element_text(size = 10), # Increase x-axis text size
           axis.text.y = element_text(size = 10), # Increase y-axis text size
           # Facet-specific
           panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
-          strip.text = element_text(size = 12, face="bold") # Facet title size
+          strip.text = element_text(size = 12, face = "bold") # Facet title size
     ) 
 }
 
@@ -338,7 +339,9 @@ plot_data = function(group_data, group_col_name, individual_data, individual_col
     my_theme()
   
   if (grepl("coloc", data_name)) {
-    p = p + scale_y_continuous(limits = c(0, 100), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    p = p + scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) + # Setting both multiplier and add-on to 0
+      theme(axis.title.y = element_text(margin = margin(r = 17.8)),
+            panel.spacing = unit(0.65, "lines"))
   } else {
     p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = label_number(accuracy=0.01))  # Setting both multiplier and add-on to 0
   }
@@ -381,9 +384,9 @@ volume_plot = plot_data(group_mean_volume, "Group_Mean", volume, "MeanVolumeColo
 volume_plot
 
 # Save plot
-ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloccoloc_allimages.png"), plot=coloc_plot, width=4.5, height=3.5, dpi=300, bg="white")
-ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocdensity_images.png"), plot=density_plot, width=4.5, height=3.5, dpi=300, bg="white")
-ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocvolume_allimages.png"), plot=volume_plot, width=4.5, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_coloccoloc_allimages.png"), plot=coloc_plot, width=4.65, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocdensity_images.png"), plot=density_plot, width=4.65, height=3.5, dpi=300, bg="white")
+ggsave(paste0(parent_filepath, relative_filepath, protein_name, "_colocvolume_allimages.png"), plot=volume_plot, width=4.65, height=3.5, dpi=300, bg="white")
 
 # Export the test results to CSV files
 write.csv(test_result_coloc, paste0(parent_filepath, relative_filepath, "stats/", protein_name, "_test_result_coloc_allimages.csv"), row.names=FALSE)
