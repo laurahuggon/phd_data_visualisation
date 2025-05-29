@@ -177,9 +177,9 @@ my_theme = function() {
           axis.text.y = element_text(size = 10), # Increase y-axis text size
           # Facet-specific
           panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
-          strip.text = element_text(size = 10) # Facet title size
+          strip.text = element_text(12, face = "bold") # Facet title size
     ) 
-}
+} 
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
 plot_data = function(group_data, group_col_name, individual_data, individual_col_name, x, test_results = test_result) {
