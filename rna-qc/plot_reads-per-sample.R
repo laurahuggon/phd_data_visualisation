@@ -115,3 +115,6 @@ plot_data = function(group_data, group_col_name, x, fill_group) {
 # Make plot
 plot = plot_data(passed_reads, "total", "sample", "fraction")
 plot
+
+# Save plot
+ggsave("/Users/k21224575/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/omics/rna/ipsc/lrs/MinKNOW/barcodes/sequencing-depth_sample.png", plot=plot, width=9, height=4, dpi=300, bg="white")
