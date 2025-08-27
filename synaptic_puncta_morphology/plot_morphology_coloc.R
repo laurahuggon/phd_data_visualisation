@@ -17,11 +17,11 @@ library(scales)
 # Define variables --------------------------------------------------------
 
 parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/synapse_morphology/"
-relative_filepath = "n_1-3/syp_coloc/"
-filename = "COLOCPRE_BTUB_A-X.csv"
+relative_filepath = "n_1_2_4/stx_coloc/"
+filename = "COLOCPRE_BTUB_1-32.csv"
 entity = "PRE"
-pre_marker = "synaptophysin"
-post_marker = "PSD-95"
+pre_marker = "syntaxin-1A"
+post_marker = "Homer-1"
 
 
 # Load data ---------------------------------------------------------------
