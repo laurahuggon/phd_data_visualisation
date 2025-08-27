@@ -1,5 +1,5 @@
 
-# For normalising to BTUB intensity: uncomment the calculation code, change the y-axis title on the plot, and change the file name.
+# For normalising intensities to BTUB intensity: uncomment the calculation code, add "Normalised" the y-axis title on the plot, and change the file name from "_raw" to "_normalised".
 
 # Load libraries ----------------------------------------------------------
 
@@ -9,31 +9,25 @@ library(ggbeeswarm)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/laurahuggon/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King'sCollegeLondon/phd/lab/imaging/isim/imaging_data_y1/syp_stx/analysis_nis_elements/global_intensity/"
 
-marker = "syntaxin 1A"
-entity = "PRE"
-measurement = "SumIntensity"
-
+marker = "Homer-1"
+normalise = TRUE
 
 # Load data ---------------------------------------------------------------
 
 # Create relative_filepath and filename
 if (marker == "synaptophysin") {
-  relative_filepath = "syp/"
-  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
-} else if (marker == "Homer") {
-  relative_filepath = "hmr/"
-  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
-} else if (marker == "syntaxin 1A") {
-  relative_filepath = "stx/"
-  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+  filename = "syp/PRE_global_intensity_syp.csv"
+} else if (marker == "Homer-1") {
+  filename = "hmr/POST_global_intensity_hmr.csv"
+} else if (marker == "syntaxin-1A") {
+  filename = "stx/PRE_global_intensity_stx.csv"
 } else if (marker == "PSD-95") {
-  relative_filepath = "psd/"
-  filename = paste0(entity, "_global_intensity_", substr(relative_filepath, 1, 3), ".csv")
+  filename = "psd/POST_global_intensity_psd.csv"
 }
 
-full_filename = paste0(parent_filepath, relative_filepath, filename)
+full_filename = paste0(parent_filepath, filename)
 nis_elements_df = read_csv(full_filename)
 
 
@@ -60,7 +54,7 @@ if (marker == "synaptophysin" | marker == "PSD-95") {
   
   suffix_regex = "(?<=_)[A-X](?=_)" # Uses lookbehind `(?<=_)` and lookahead `(?=_)` to capture character between two underscores
   
-} else if (marker == "syntaxin 1A" | marker == "Homer") {
+} else if (marker == "syntaxin-1A" | marker == "Homer-1") {
   genotype_map = c("1" = "Q331K", "2" = "Q331K", "3" = "WT", "4" = "WT",
                    "5" = "Q331K", "6" = "WT", "7" = "WT", "8" = "Q331K",
                    "9" = "Q331K", "10" = "WT", "11" = "Q331K", "12" = "Q331K",
@@ -100,12 +94,8 @@ nis_elements_df = nis_elements_df %>%
   ) %>%
   select(-Suffix)  # Remove the Suffix column if it's not needed later
 
-# Remove DIV 28
-nis_elements_df = nis_elements_df %>%
-  filter(DIV != "28")
-
 # Remove DIFF 5
-if(marker == "syntaxin 1A" | marker == "Homer") {
+if(marker == "syntaxin-1A" | marker == "Homer-1") {
   nis_elements_df = nis_elements_df %>%
     filter(DIFF != "5")
 }
@@ -114,31 +104,28 @@ if(marker == "syntaxin 1A" | marker == "Homer") {
 nis_elements_df$Genotype = factor(nis_elements_df$Genotype, levels = c("WT", "Q331K"))
 nis_elements_df$DIFF = factor(nis_elements_df$DIFF, levels = c(3, 4, 5, 14))
 
-# Normalise SumIntensity values to TotalCellVolume
-# if (entity == "PRE") {
-#   nis_elements_df = nis_elements_df %>%
-#     mutate(
-#       PRE_SumIntensity = PRE_SumIntensity / `TotalCellVolume(BTUB)`
-#     )
-# } else if (entity == "POST") {
-#   nis_elements_df = nis_elements_df %>%
-#     mutate(
-#       POST_SumIntensity = POST_SumIntensity / `TotalCellVolume(BTUB)`
-#     )
-# }
-
-# Normalise MedianIntensity to BTUB_MedianIntensity
-# if (entity == "PRE") {
-#   nis_elements_df = nis_elements_df %>%
-#     mutate(
-#       PRE_MedianIntensity = PRE_MedianIntensity / BTUB_MedianIntensity
-#     )
-# } else if (entity == "POST") {
-#   nis_elements_df = nis_elements_df %>%
-#     mutate(
-#       POST_MedianIntensity = POST_MedianIntensity / BTUB_MedianIntensity
-#     )
-# }
+# Normalise MeanIntensity to BTUB_MeanIntensity
+if(normalise == TRUE && (marker == "synaptophysin" | marker == "syntaxin-1A")) {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      mean_intensity = PRE_MeanIntensity / BTUB_MeanIntensity
+    )
+} else if (normalise == TRUE && (marker == "PSD-95" | marker == "Homer-1")) {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      mean_intensity = POST_MeanIntensity / BTUB_MeanIntensity
+    )
+} else if (normalise == FALSE && (marker == "synaptophysin" | marker == "syntaxin-1A")) {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      mean_intensity = PRE_MeanIntensity
+    )
+} else {
+  nis_elements_df = nis_elements_df %>%
+    mutate(
+      mean_intensity = POST_MeanIntensity
+    )
+}
 
 # Find sample means -------------------------------------------------------
 
@@ -170,111 +157,83 @@ mean_by_group = function(data, column_name) {
     group_by(Genotype) %>%
     summarise(
       N = n(), # Count the number of samples in each group
-      Global_Mean = mean(.data[[column_name]]), # Calculate mean for each group
-      SD = sd(.data[[column_name]]) # Calculate the SD for each group
+      Group_Mean = mean(.data[[column_name]], na.rm = TRUE), # Calculate mean for each group
+      SD = sd(.data[[column_name]], na.rm = TRUE) # Calculate the SD for each group
     )
   return(result)
 }
 
-# Define column name
-column_name = paste0(entity, "_", measurement)
-
 # Find mean for each group
-group_means = mean_by_group(nis_elements_df, column_name)
+group_means = mean_by_group(nis_elements_df, "mean_intensity")
 
 
 # Statistics --------------------------------------------------------------
 
 # Create function to test normality, equal variance, and perform appropriate statistical test
-perform_test = function(data, col_name) {
+perform_test = function(data, value_col, grouping_col, ctrl_group, exp_group) {
   
-  # Extract values grouped by Genotype using col_name
+  # Extract data for groups
+  # [[1]] pulls the first (and only) column as a vector
+  ctrl_data = data[data[[grouping_col]] == ctrl_group, value_col][[1]]
+  exp_data = data[data[[grouping_col]] == exp_group, value_col][[1]]
+  
   # Test for normality using Shapiro-Wilk test
-  normality_result = by(data[[col_name]], data$Genotype, shapiro.test)
+  # The variable is set to TRUE if the p-value is greater than 0.05 (if data is greater than 0.05, it is considered normally distributed)
+  ctrl_normal = shapiro.test(ctrl_data)$p.value > 0.05
+  exp_normal = shapiro.test(exp_data)$p.value > 0.05
   
-  wt_normal = normality_result$WT$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-  # `wt_normal` is set to `TRUE` if p-value is greater than 0.05
-  q331k_normal = normality_result$Q331K$p.value > 0.05 # If p-value is greater than 0.05, the data is considered normally distributed
-  # `qk_normal` is set to `TRUE` if p-value is greater than 0.05
-  
-  if (!wt_normal || !q331k_normal) { # If either variable is set to `FALSE`
+  if (!ctrl_normal || !exp_normal) { # If either variable is set to `FALSE`
     # If data is not normally distributed, perform Mann-Whitney test
-    message = "Data not normally distributed; perform Mann-Whitney test"
-    test_result = wilcox.test(data[[col_name]] ~ data$Genotype) # `col_name ~ Genotype` specifies that you want to compare values in the `col_name` column grouped by `Genotype`
+    test_result = wilcox.test(exp_data, ctrl_data)
   } else {
-    # Test for equal variances using F-test
-    variance_test = var.test(data[[col_name]] ~ data$Genotype)
-    var_equal = variance_test$p.value > 0.05 # If p-value is greater than 0.05, it assumes both genotypes have equal variances
+    # If both groups are normally distributed, test for equal variances using F-test
+    # If p-value is greater than 0.05, it assumes both groups have equal variances
+    var_test = var.test(exp_data, ctrl_data)$p.value > 0.05
     
-    if (!var_equal) { # If `var_equal` variable is set to `FALSE`
+    if (!var_test) { # If `var_equal` variable is set to `FALSE`
       # If variances are not equal, perform t-test with var.equal = FALSE
-      message = "Data does not have equal variance; perform Welch's t-test"
-      test_result = t.test(data[[col_name]] ~ data$Genotype, var.equal = FALSE)
+      test_result = t.test(exp_data, ctrl_data, var.equal = FALSE)
     } else {
-      # If variances are equal, perform t-test with var.equal = TRUE
-      message = "Data has equal variance; perform Student's t-test"
-      test_result = t.test(data[[col_name]] ~ data$Genotype, var.equal = TRUE)
+      # If variances are equal, perform t-test with var.equal = TRUE					
+      test_result = t.test(exp_data, ctrl_data, var.equal = TRUE)
     }
   }
   
-  # Return both test results and the message
-  return(list(test_result = test_result, message = message))
+  # Return test results
+  return(list(test_result = test_result,
+              n_ctrl = length(ctrl_data),
+              n_exp = length(exp_data)))
 }
 
 # Perform t-test
-result = perform_test(nis_elements_df, column_name)
+test_result_list = perform_test(nis_elements_df, "mean_intensity", "Genotype", "WT", "Q331K")
 
-# Accessing the test results
-test_result = result$test_result
+# Convert to dataframe
+test_result = data.frame(
+  n_ctrl = test_result_list$n_ctrl,
+  n_exp = test_result_list$n_exp,
+  p.value = test_result_list$test_result$p.value,
+  method = test_result_list$test_result$method,
+  alternative = test_result_list$test_result$alternative
+)
 
-# Accessing the message
-message = result$message
-
-# Create function that converts p-values to signficance stars and generates a dataframe of annotations
-prepare_annotations = function(test_result) {
-  # Convert p-values to stars based on traditional significance levels
-  convert_p_to_stars = function(p_value) {
-    if (p_value <= 0.0001) {
-      return("****")
-    } else if (p_value <= 0.001) {
-      return("***")
-    } else if (p_value <= 0.01) {
-      return("**")
-    } else if (p_value <= 0.05) {
-      return("*")
-    } else {
-      return("")  # Not significant
-    }
-  }
-  
-  # Extract p-value from test results
-  p_value = test_result$p.value
-  
-  # Convert p-value to stars
-  stars = convert_p_to_stars(p_value)
-  
-  # Create a dataframe `annotations`
-  annotations = data.frame(
-    p_value = p_value,
-    Stars = stars,
-    stringsAsFactors = FALSE
-  )
-  
-  # Filter out non-significant annotations
-  annotations = annotations[annotations$Stars != "", ]
-  
-  return(annotations)
-}
-
-# Create annotations
-annotation = prepare_annotations(test_result)
-
-# Find the maximum y-values -> this is for dynamic annotation bars in the plots
-annotation = annotation %>%
+# Add significance stars
+test_result = test_result %>%
   mutate(
-    max_y = max(group_means$Global_Mean + group_means$SD)
+    stars = case_when(
+      p.value < 0.0001 ~ "****",
+      p.value < 0.001 ~ "***",
+      p.value < 0.01 ~ "**",
+      p.value < 0.05 ~ "*",
+      TRUE ~ ""
+    )
   )
 
+# Find max y-value from individual data points
+test_result = test_result %>%
+  mutate(max_y = max(nis_elements_df$mean_intensity)) %>%
+  # Replace max_y with NA if not significant
+  mutate(max_y = ifelse(stars == "", NA, max_y))
 
 # Data visualisation ------------------------------------------------------
 
@@ -284,149 +243,115 @@ my_theme = function() {
     theme(legend.position = "none",
           axis.line = element_line(colour = "black"),  # Add axis lines
           axis.ticks = element_line(colour = "black"),  # Add axis ticks
-          plot.title = element_text(face = "bold",
-                                    hjust = 0.5), # Adjust plot title
-          axis.title.y = element_text(margin = margin(r = 7.5), # Adjust y-axis title position
-                                      size = 13), # Adjust y-axis title size
+          plot.title = element_text(face = "bold", hjust = 0.5, size = 12), # Adjust plot title
+          axis.title.x = element_text(margin = margin(t = 15), size = 12), # Adjust x-axis title
+          axis.title.y = element_text(margin = margin(r = 15), size = 12), # Adjust y-axis title
           axis.text.x = element_text(size = 10), # Increase x-axis text size
-          axis.text.y = element_text(size = 10) # Increase y-axis text size
+          axis.text.y = element_text(size = 10), # Increase y-axis text size
+          # Facet-specific
+          panel.spacing = unit(0.5, "lines"), # Adjust spacing between facet panels
+          strip.text = element_text(size = 12, face = "bold") # Facet title size
     ) 
 }
 
 # Create a function that takes two dataframes and column names to generate multiple bar plots with overlayed data points
-plot_data = function(group_data, col_name, annotation_data, x = "Genotype", sd = "SD") {
+plot_data = function(group_data, group_col_name, individual_data, individual_col_name, x, test_results = test_result) {
   
   # Calculate the maximum y value to set upper axis limit
-  max_y_value = max(nis_elements_df[[col_name]], na.rm = TRUE)
+  max_y_value = max(individual_data[[individual_col_name]], na.rm = TRUE)
   upper_limit = max_y_value * 1.25  # 25% buffer above the max value
   
+  # Create y-axis title
+  if(normalise == TRUE) {
+    y_title = paste0("Normalised mean intensity\nof ", marker)
+  } else {
+    y_title = paste0("Mean intensity\nof ", marker, " (a.u.)")
+  }
+  
   # Create the bar plot
-  p = ggplot(group_data, aes_string(x = x,
-                                    y = "Global_Mean",
+  p = ggplot(group_data, aes_string(x = x, 
+                                    y = group_col_name,
                                     fill = x)) +
+    
     # Bar plot
-    geom_col(position = position_dodge(0.9),
-             width = 0.6,
-             color = "black") +
-    scale_fill_manual(values = c("WT" = "grey40", "Q331K" = "grey88")) +
+    geom_col(width = 0.8, color = "black") +
+    scale_fill_manual(values = c("WT" = "#F3D99E", "Q331K" = "#DBAEAF")) +
     
     # Error bars
-    geom_errorbar(aes(ymin = group_data[["Global_Mean"]] - group_data[[sd]],
-                      ymax = group_data[["Global_Mean"]] + group_data[[sd]]),
-                  width = 0.2,
-                  position = position_dodge(0.9)) +
+    geom_errorbar(aes(ymin = .data[[group_col_name]] - SD,
+                      ymax = .data[[group_col_name]] + SD),
+                  width = 0.2) +
     
     # Graph titles
     labs(title = "Global",
          x = "",
-         y = paste0(measurement, " of ", marker, " (a.u.)"),
-         fill = x) +
+         y = y_title,
+         fill = x) + # Legend title
     
     # Plot appearance
-    my_theme() +
-    scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+    my_theme()
+  
+  if(normalise == TRUE) {
+    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0), labels = function(x) sprintf("%.2f", x))  # Setting both multiplier and add-on to 0
+  } else {
+    p = p + scale_y_continuous(limits = c(0, upper_limit), expand = c(0, 0))  # Setting both multiplier and add-on to 0
+  }
   
   # Define shapes for each DIFF value
-  diff_shapes <- c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
+  diff_shapes = c("3" = 21, "4" = 22, "5" = 24, "14" = 25)
   
-  # Overlay individual data points with different shapes for DIFF
-  p = p + geom_quasirandom(data = nis_elements_df, aes_string(x = x,
-                                                              y = col_name,
-                                                              shape = "DIFF"),  # Added shape aesthetic
-                           width = 0.2, size = 1.5, fill = "black", alpha = 0.5) +  # Adjust width and alpha transparency here
-    scale_shape_manual(values = diff_shapes)  # Adjust shape values if needed
+  # Overlay individual data points (optional with different shapes for DIFF)
+  p = p + geom_quasirandom(data=individual_data, aes_string(x = x,
+                                                            y = individual_col_name,
+                                                            shape = "DIFF"),
+                           width = 0.2,
+                           size = 1.25,
+                           fill = "black", alpha = 0.5) +
+    scale_shape_manual(values = diff_shapes) 
   
-  # Add conditional annotations for significant p-values
-  if (nrow(annotation_data) > 0) {
-    # Add significance stars
-    # `x = 1.5` is used to position the text centrally between the two bars -> assumes that genotype has 2 ordered levels which correspond to position 1 and 2
-    # `y = max_y * 1.08` places the text just above the estimated maximum y value
-    # `position_dodge(width = 0.9` function is used to align the text with the corresponding bars
-    p = p + geom_text(data = annotation_data, aes(label = Stars, x = 1.5, y = max_y_value * 1),
-                      position = position_dodge(width = 0.9), inherit.aes = FALSE, vjust = -0.5,
-                      size = 7)  # Adjust size here)
-    
-    # Add significance line
-    # `x` and `xend` set the x-axis positions of the line
-    # `y` and `yend` set the y-axis positions of the line
-    # `position_dodge(width = 0.9` aligns the line with the bar positions
-    p = p + geom_segment(data = annotation_data, aes(x = 1, xend = 2, y = max_y_value * 1.05, yend = max_y_value * 1.05),
-                         linetype = "solid", color = "black", position = position_dodge(width = 0.9), inherit.aes = FALSE)
-  }
+  # Significance stars
+  p = p + geom_text(data = test_results, aes(label = stars,
+                                             x = 1.5,
+                                             y = (max_y + 0.1*upper_limit)),
+                    inherit.aes = FALSE,
+                    size = 6)  # Adjust size here
+  # Significance lines
+  p = p + geom_segment(data = test_results, aes(x = 1,
+                                                xend = 2,
+                                                y = (max_y + 0.075*upper_limit),
+                                                yend = (max_y + 0.075*upper_limit)),
+                       linetype = "solid",
+                       color = "black",
+                       inherit.aes = FALSE)
   
   # Print the plot
   return(p)
 }
 
+
 # Make plot
-plot = plot_data(group_means, column_name, annotation)
+plot = plot_data(group_means, "Group_Mean", nis_elements_df, "mean_intensity", "Genotype")
 
 plot
 
-# Export plot
-# Open a PNG file to save the plot
-#
-# For plot title with 1 line:
-# width=825, height=1335
-#
-# For plot title with 2 lines:
-# width=825, height=1390
-png(paste0(parent_filepath, relative_filepath, marker, "_global_", measurement, "_raw.png"), width=825, height=1335, res=300)
-
-# Create a plot
-plot
-
-# Close the device
-dev.off()
-
-# Histograms
-# plot2 = ggplot(nis_elements_df, aes(x = PRE_MeanIntensity, fill = DIFF, color = DIFF)) +
-#   geom_density(alpha = 0.4, size = 0.5, adjust = 1.5) +  # Adjust the smoothness
-#   labs(title = paste0("Density Plot of ", measurement, " (", marker, ")"),
-#        x = measurement,
-#        y = "Density") +
-#   theme_minimal() +
-#   theme(legend.position = "right") +
-#   xlim(min(nis_elements_df$PRE_MeanIntensity) - 500, max(nis_elements_df$PRE_MeanIntensity) + 750) +
-#   facet_wrap(~ Genotype, scales = "free_y")  # Separate plots by Genotype
-# 
-# plot2
-
-# Export test results
-# Function to extract p-value, method, alternative hypothesis, and sample sizes per group from test results
-extract_test_results = function(test_results, data) {
-  results_df = data.frame(
-    p_value = numeric(),
-    method = character(),
-    alternative = character(),
-    WT_sample_size = integer(),  # Sample size for WT genotype
-    Q331K_sample_size = integer(),  # Sample size for Q331K genotype
-    stringsAsFactors = FALSE
-  )
-    
-    # Count the number of samples for each genotype within the current DIV
-    wt_sample_count = nrow(subset(data, Genotype == "WT"))
-    q331k_sample_count = nrow(subset(data, Genotype == "Q331K"))
-    
-    results_df = data.frame(
-      p_value = round(test_result$p.value, 4),  # Round p-value to 4 decimal places
-      method = test_result$method,
-      alternative = test_result$alternative,
-      WT_sample_size = wt_sample_count,  # Add WT sample size to the results
-      Q331K_sample_size = q331k_sample_count  # Add Q331K sample size to the results
-    )
-  
-  return(results_df)
+if(normalise == TRUE) {
+  # Define directory
+  dir = sub("^([^/]+/).*", "\\1", filename)
+  # Save plot
+  ggsave(paste0(parent_filepath, dir, marker, "_global_mean-intensity_norm.png"), plot=plot, width=2.05, height=3.5, dpi=300, bg="white")
+  # Export test results
+  # Define file path for saving CSVs
+  csv_path = paste0(parent_filepath, dir, "stats/", marker, "_global_mean-intensity_norm.csv")
+  # Export the test results to CSV files
+  write.csv(test_result, csv_path, row.names=FALSE)
+} else {
+  # Define directory
+  dir = sub("^([^/]+/).*", "\\1", filename)
+  # Save plot
+  ggsave(paste0(parent_filepath, dir, marker, "_global_mean-intensity_raw.png"), plot=plot, width=2.1, height=3.5, dpi=300, bg="white")
+  # Export test results
+  # Define file path for saving CSVs
+  csv_path = paste0(parent_filepath, dir, "stats/", marker, "_global_mean-intensity_raw.csv")
+  # Export the test results to CSV files
+  write.csv(test_result, csv_path, row.names=FALSE)
 }
-
-# Extract results
-results_df = extract_test_results(test_result, nis_elements_df)
-
-# Define file path for saving CSVs
-csv_path = paste0(parent_filepath, relative_filepath, marker, "_global_", measurement, "_raw.csv")
-
-# Export the test results to CSV files
-write.csv(results_df, csv_path, row.names=FALSE)
-
-# Print message
-print(message)
