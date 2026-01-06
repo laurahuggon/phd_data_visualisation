@@ -28,11 +28,16 @@ A second script performs this on all FOVs, rather than sample means.
 Contains R scripts used to generate and analyse protein standard curves from protein concentration assays.
 The script takes raw absorbance values for standards and samples to plot a standard curve (either linear or quadratic regression) and extrapolates unknown protein concentrations.
 
-### rna_quantification
+### rna_qc
 
-Contains R scripts for plotting the quality control statistics for RNA sample characterisation.
-Generates 4 plots for each metric (concentration, A260/A280, A260/A230, RINe), faceted by fraction and *n* number.
-There are two scripts - one for the optimisation extractions and one for the experimental extractions.
+Contains R scripts for plotting the quality control statistics for RNA samples generated for long-read RNA-sequencing.
+
+-   `plot_rna_quantification_{experimental/optimisation}`: generates 4 plots for each metric (concentration, A260/A280, A260/A230, RINe), faceted by fraction and *n* number.
+    There are two scripts - one for the optimisation extractions and one for the experimental extractions.
+
+-   `plot_reads_per_sample`: takes the `.csv` of reads produced from MinKNOW (per flow cell) and generates a plot of the number of reads per sample (barcode).
+
+-   `alignment_stats`: takes the alignment stats `.tsv` files generated from `samtools` (per sample) and generates a single table with specified statistics for all samples.
 
 ### synaptic_protein_cellbody_intensity
 
@@ -102,30 +107,22 @@ Finds sample (by *n* number and genotype) and group (by genotype) means, tests n
 
 -   `plot_eq_diameter.R`: generates a plot of the equivalent diameter of all puncta detected in one image.
 
--   `plot_morphology_allimages.R`: performs statistical testing and generates plots using all the images in the dataset (rather than using the sample means).
+-   ~~`plot_morphology_allimages.R`: performs statistical testing and generates plots using all the images in the dataset (rather than using the sample means).~~
 
--   `plot_morphology_coloc_allimages_multiplecomparisons.R`: performs statistical testing and generates plots using all the images in the dataset (rather than using the sample means).
-    Only colocalised puncta have been analysed.
-    Conducted multiple comparisons corrections.
+-   ~~`plot_morphology_coloc_allimages_multiplecomparisons.R`: performs statistical testing and generates plots using all the images in the dataset (rather than using the sample means). Only colocalised puncta have been analysed. Conducted multiple comparisons corrections.~~
 
 -   `plot_morphology_coloc_allimages.R`: performs statistical testing and generates plots using all the images in the dataset (rather than using the sample means).
     Only colocalised puncta have been analysed.
 
--   `plot_morphology_coloc_n1.R`: generates plots for experiments containing *n*=1.
-    Does not perform statistical testing.
-    Only colocalised puncta have been analysed.
+-   ~~`plot_morphology_coloc_n1.R`: generates plots for experiments containing *n*=1. Does not perform statistical testing. Only colocalised puncta have been analysed.~~
 
 -   `plot_morphology_coloc.R`: generates plots for experiments containing *n*=3.
     Performs statistical testing.
     Only colocalised puncta have been analysed.
 
--   `plot_morphology_n1.R`: generates plots for experiments containing *n*=1.
-    Does not perform statistical testing.
-    All detected have been analysed.
+-   ~~`plot_morphology_n1.R`: generates plots for experiments containing *n*=1. Does not perform statistical testing. All detected have been analysed.~~
 
--   `plot_morphology.R`: generates plots for experiments containing *n*=3.
-    Performs statistical testing.
-    All detected have been analysed.
+-   ~~`plot_morphology.R`: generates plots for experiments containing *n*=3. Performs statistical testing. All detected have been analysed.~~
 
 ### western_blots
 
