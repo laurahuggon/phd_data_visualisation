@@ -1,8 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: sentence
----
 
 # PhD Experiments: Data Processing & Data Visualisation
 
