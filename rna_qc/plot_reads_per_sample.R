@@ -7,7 +7,7 @@ library(scales)
 
 # Define variables --------------------------------------------------------
 
-parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/omics/rna/ipsc/lrs/MinKNOW/barcodes/"
+parent_filepath = "/Users/k21224575/Library/CloudStorage/OneDrive-King\'sCollegeLondon/phd/lab/omics/rna/ipsc/lrs/outs/MinKNOW/reads_csv/"
 
 # Load data ---------------------------------------------------------------
 
